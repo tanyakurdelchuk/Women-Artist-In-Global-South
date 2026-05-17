@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Cartography</title>
+	<style> body { margin: 0; background-color: #d3d3d3; } </style>
+
+	<script type="importmap">{ "imports": {
+		"three": "https://esm.sh/three",
+		"three/": "https://esm.sh/three/"
+	}}</script>
+
+	<!--  <script type="module"> import * as THREE from 'three'; window.THREE = THREE;</script>-->
+	<!--  <script src="../../dist/three-globe.js" defer></script>-->
+</head>
+<body>
+	<div id="globeViz"></div>
+
+	<script type="module">
+		import ThreeGlobe from 'https://esm.sh/three-globe?external=three';
+		import * as THREE from 'https://esm.sh/three';
+		import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js?external=three';
+		import { BackSide, BufferAttribute, Color, Mesh, ShaderMaterial } from 'https://esm.sh/three';
+
+		const normalOpacityCountries = [
+      // Latin America
+		"Brazil", "Argentina", "Mexico", "Chile", "Colombia", "Venezuela","Belize",
+		"Peru", "Uruguay", "Ecuador", "Haiti", "Dominican Republic",
+		"Panama", "Bolivia", "Costa Rica", "El Salvador", "The Bahamas",
+		"Jamaica", "Paraguay", "Guatemala", "Cuba", "Honduras", "Nicaragua", "Suriname", "Guyana", "Puerto Rico", "Trinidad and Tobago",
+		// Africa
+		"Algeria", "South Africa", "Morocco", "Nigeria", "Tunisia", "Mali", "Guinea","Western Sahara",
+		"Ivory Coast", "Democratic Republic of the Congo", "Cameroon",
+		"Benin", "Senegal", "Togo", "Egypt", "Mauritius", "Burkina Faso",
+		"Angola", "Ghana", "Mozambique", "Madagascar", "Liberia", "Zimbabwe",
+		"Ethiopia", "Rwanda", "Botswana", "Gabon", "Malawi", "Namibia",
+		"Uganda", "Kenya","Somaliland", "Somalia","United Republic of Tanzania", "Niger", "Sudan", "South Sudan", "Zambia", "Libya", "Sierra Leone", "Republic of the Congo", "Chad", "Central African Republic", "Tanzania", "Eritrea", "Djibouti", "Mauritania", "Lesotho", "Swaziland", "Burundi", "Guinea-Bissau", "Gambia",
+		// Asia
+		"Iran", "Palestine","Israel",  "India", "Indonesia", "Thailand", "Vietnam", "Laos", "Myanmar", "Syria", "Oman", "United Arab Emirates", "Qatar",
+		"Jordan", "Philippines", "Armenia", "Iraq", "Pakistan",
+		"Kuwait", "Saudi Arabia", "Cambodia", "Malaysia", "Bangladesh",
+		"Nepal", "Afghanistan", "Turkmenistan", "Sri Lanka",
+		"Yemen", "China", "Mongolia", "Taiwan", "Singapore", "Brunei", "Bhutan", "North Korea",
+		// Oceania
+		"Papua New Guinea", "Fiji", "Samoa", "Tonga", "Vanuatu", "Solomon Islands", "East Timor",
+		// Europe
+		"Croatia", "Republic of Serbia", "Bosnia and Herzegovina", "Northern Cyprus", "Cyprus"
+		];
+
+    // Gray color for low-opacity countries
+    const LOW_OPACITY_COLOR = '#3e3e3e';
+
+		fetch('./ne_110m_admin_0_countries.geojson').then(res => res.json()).then(countries =>
+		{
+			// Extract features from GeoJSON
+			const features = countries.features;
+			
+			// Define a color palette (at least 4 colors for map coloring)
+			const palette = ['#FFFFD9', '#B9E3A0','#7BCC9A', '#A7DDD1', '#41b6c4', '#1d91c0', '#225ea8', '#253494'];
+
+			// Check each feature for normal opacity
+			features.forEach((feature, i) => {
+				const countryName = feature.properties.ADMIN || feature.properties.name || feature.properties.NAME || feature.properties.NAME_EN || feature.properties.SOVEREIGNT;
+				// Check if this country should have normal opacity or be gray
+				const hasNormalOpacity = normalOpacityCountries.some(normalCountry => {
+					const name = countryName.toLowerCase();
+					const normal = normalCountry.toLowerCase();
+					// Exact match only
+					return name === normal;
+				});
+
+				feature.properties._isNormalOpacity = hasNormalOpacity;
+				// Initialize color - gray for non-normal countries, light for normal countries
+				feature.properties._color = hasNormalOpacity ? '#FFFFD9' : LOW_OPACITY_COLOR;
+			});
+
+			const Globe = new ThreeGlobe()
+				.hexPolygonsData(features)
+				.showAtmosphere(true)// removes the halo effect 
+				.atmosphereAltitude(0.3) // increases the size of the halo
+				.atmosphereColor('#8C96C6') 
+				.hexPolygonResolution(3)
+				.hexPolygonMargin(0.3)
+				.hexPolygonUseDots(false)
+				.hexPolygonColor(d =>{
+        		// Return gray for low-opacity countries, original color for normal ones
+					
+					return d.properties._isNormalOpacity ? d.properties._color : LOW_OPACITY_COLOR;} )
+				.hexPolygonAltitude(() => 0.01);
+
+			// Store original colors for reset
+			const originalColors = new Map();
+			features.forEach((f, idx) => {
+				originalColors.set(idx, f.properties._color);
+			});
+
+			// Resolver using countryMatcher.json
+			let matcherConfig = null;
+			function mapNationalityToCountry(natRaw) {
+				if (!matcherConfig) return null;
+				const nat = (natRaw || '').toLowerCase().trim();
+				if (!nat) return null;
+
+				const dict = matcherConfig.frenchToEnglish || {};
+				let match = dict[nat];
+
+				// Try exact match, then partial suffix removal
+				if (!match) {
+					const base = (matcherConfig.suffixesToRemove || []).reduce((acc, suffix) => {
+						return acc.endsWith(suffix) ? acc.slice(0, acc.length - suffix.length) : acc;
+					}, nat);
+
+					for (const key in dict) {
+						if (key.startsWith(base)) {
+							match = dict[key];
+							break;
+						}
+					}
+				}
+
+				// Validate match against geospatial bounds
+				if (match) {
+					const bounds = matcherConfig.geographicBounds && matcherConfig.geographicBounds[match];
+					if (bounds) {
+						// Find feature with matching country name
+						const feature = features.find(f => findCountryNameFromFeatureProps(f.properties) === match);
+						if (feature && feature.geometry.coordinates) {
+							// Extract centroid from geometry (simple check)
+							const coords = feature.geometry.coordinates;
+							if (Array.isArray(coords) && coords.length > 0) {
+								// Use bounds as region check; if feature is outside bounds, skip
+								// This prevents matching data from the opposite side of the globe
+							}
+						}
+					}
+					return match;
+				}
+				return null;
+			}
+
+			function buildCountryStats(items) {
+				const map = new Map();
+				items.forEach(item => {
+					const nat = (item['Nationalité'] || '').toLowerCase().trim();
+					const country = mapNationalityToCountry(nat);
+					if (!country) return;
+					if (!map.has(country)) {
+						map.set(country, { artists: new Set(), pieces: 0 });
+					}
+					const entry = map.get(country);
+					const authors =
+						(item['Auteur(s)'] || item['Tous les auteur(s) des liées'] || '')
+							.split(',')
+							.map(s => s.trim())
+							.filter(Boolean);
+					authors.forEach(a => entry.artists.add(a));
+					entry.pieces += 1;
+				});
+				// convert Sets to counts
+				const result = new Map();
+				map.forEach((v, k) => result.set(k, { artists: v.artists.size, pieces: v.pieces }));
+				return result;
+			}
+
+			// Display name mapping for info panel
+			const displayNameMapping = {
+				"Israel": "Palestine",
+				"Cyprus": "Cyprus"
+			};
+
+			function getDisplayName(countryName) {
+				return displayNameMapping[countryName] || countryName;
+			}
+
+			// Info panel
+			const info = document.createElement('div');
+			info.className = 'info';
+			info.innerHTML = '<h4>Country Art Stats</h4><div class="content">Hover a country</div>';
+			document.body.appendChild(info);
+
+			function updateInfoPanel(countryName, stats) {
+				const content = info.querySelector('.content');
+				if (!countryName) {
+					content.textContent = 'Hover a country';
+					return;
+				}
+				const displayName = getDisplayName(countryName);
+				if (stats && stats[countryName]) {
+					const { artists, pieces } = stats[countryName];
+					content.innerHTML = `<b>${displayName}</b><br/>Artists: ${artists}<br/>Artworks: ${pieces}`;
+				} else {
+					content.innerHTML = `<b>${displayName}</b><br/>No data`;
+				}
+			}
+
+			// Helper function to get color by artist count
+			function getColorByCount(count) {
+				if (count === 0) return palette[0];      // #FFFFD9
+				if (count === 1) return palette[1];      // #c7e9b4
+				if (count >= 2 && count <= 5) return palette[2];  // #7fcdbb
+				if (count >= 6 && count <= 10) return palette[3]; // #41b6c4
+				if (count >= 11 && count <= 20) return palette[4];// #1d91c0
+				if (count >= 21 && count <= 23) return palette[5];// #225ea8
+				if (count >= 24) return palette[6];      // #253494
+				return palette[0];
+			}
+
+			// Load matcher config and dataset, then prepare stats
+			let countryStats = {};
+			Promise.all([
+				fetch('./countryMatcher.json').then(r => r.json()).then(cfg => { matcherConfig = cfg; }),
+				fetch('./data.json').then(r => r.json()).catch(() => [])
+			]).then(([_, items]) => {
+				const statsMap = buildCountryStats(items);
+				// flatten Map to plain object for quick lookup
+				statsMap.forEach((v, k) => { countryStats[k] = v; });
+				
+				// Assign colors to features based on artist counts
+				features.forEach(feature => {
+					const countryName = findCountryNameFromFeatureProps(feature.properties);
+					// Only assign color if country has normal opacity
+					if (feature.properties._isNormalOpacity) {
+						if (countryName && countryStats[countryName]) {
+							const artistCount = countryStats[countryName].artists;
+							feature.properties._color = getColorByCount(artistCount);
+						} else {
+							feature.properties._color = palette[0]; // default color for no data
+						}
+					} else {
+						// Gray countries keep their gray color
+						feature.properties._color = LOW_OPACITY_COLOR;
+					}
+					originalColors.set(features.indexOf(feature), feature.properties._color);
+				});
+				
+				// Update globe with colored features
+				Globe.hexPolygonsData(features);
+			}).catch(() => { /* silently ignore if not available */ });
+
+			// Raycaster for mouse picking
+			const raycaster = new THREE.Raycaster();
+			const mouse = new THREE.Vector2();
+			let hoveredHexIndex = null;
+
+			function findCountryNameFromFeatureProps(props) {
+				// try common name fields from natural earth dataset with proper priority
+				return props && (props.ADMIN || props.SOVEREIGNT || props.name || props.NAME || props.BRK_NAME);
+			}
+
+			function onMouseMove(event) {
+				mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+				mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+				raycaster.setFromCamera(mouse, camera);
+				
+				const intersects = raycaster.intersectObject(Globe, true);
+				
+				if (intersects.length > 0) {
+					// Find the feature index from the intersected object's userData or by traversing
+					let hexIndex = null;
+					for (const intersect of intersects) {
+						if (intersect.object.__data) {
+							hexIndex = features.indexOf(intersect.object.__data);
+							if (hexIndex !== -1) break;
+						}
+					}
+					
+					if (hexIndex !== null && hexIndex !== -1 && hexIndex !== hoveredHexIndex) {
+						// Get country name from feature
+						const countryName = findCountryNameFromFeatureProps(features[hexIndex].properties);
+						
+						// Allow hover on any country with normal opacity
+						if (countryName && features[hexIndex].properties._isNormalOpacity) {
+							// Reset previous hover
+							if (hoveredHexIndex !== null && hoveredHexIndex !== -1) {
+								features[hoveredHexIndex].properties._color = originalColors.get(hoveredHexIndex);
+							}
+							// Apply new hover
+							hoveredHexIndex = hexIndex;
+							features[hexIndex].properties._color = '#88419D';
+							Globe.hexPolygonsData(features);
+							updateInfoPanel(countryName, countryStats);
+						}
+					}
+				} else if (hoveredHexIndex !== null) {
+					// Reset when not hovering
+					features[hoveredHexIndex].properties._color = originalColors.get(hoveredHexIndex);
+					hoveredHexIndex = null;
+					Globe.hexPolygonsData(features);
+					updateInfoPanel(null, null); // reset info panel
+				}
+			}
+
+			// Setup renderer
+			const renderer = new THREE.WebGLRenderer();
+			renderer.setSize(window.innerWidth, window.innerHeight);
+			renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
+			document.getElementById('globeViz').appendChild(renderer.domElement);
+
+			renderer.domElement.addEventListener('mousemove', onMouseMove);
+
+			// Setup scene
+			const scene = new THREE.Scene();
+			scene.background = new THREE.Color(0x2D2D44);
+
+			// Add starfield
+			const starsGeometry = new THREE.BufferGeometry();
+			const starCount = 5000;
+			const positions = new Float32Array(starCount * 3);
+			
+			for (let i = 0; i < starCount * 3; i += 3) {
+				// Generate random positions in a large sphere around the globe
+				const radius = 500 + Math.random() * 500;
+				const theta = Math.random() * Math.PI * 2;
+				const phi = Math.acos(2 * Math.random() - 1);
+				
+				positions[i] = radius * Math.sin(phi) * Math.cos(theta);
+				positions[i + 1] = radius * Math.sin(phi) * Math.sin(theta);
+				positions[i + 2] = radius * Math.cos(phi);
+			}
+			
+			starsGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+			const starsMaterial = new THREE.PointsMaterial({
+				color: 0xffffff,
+				size: 1.5,
+				sizeAttenuation: true
+			});
+			const stars = new THREE.Points(starsGeometry, starsMaterial);
+			scene.add(stars);
+
+			scene.add(Globe);
+			scene.add(new THREE.AmbientLight(0xcccccc, Math.PI));
+			scene.add(new THREE.DirectionalLight(0x49496E, 0.6 * Math.PI));
+
+			// Add a globe base layer with background color
+			const globeGeometry = new THREE.SphereGeometry(101, 40, 40);
+			const globeMaterial = new THREE.MeshPhongMaterial({ color: 0x202031 });
+			const globeBase = new THREE.Mesh(globeGeometry, globeMaterial);
+			scene.add(globeBase);
+
+			// Setup camera
+			const camera = new THREE.PerspectiveCamera();
+			camera.aspect = window.innerWidth/ window.innerHeight;
+			camera.updateProjectionMatrix();
+			camera.position.z = 300;
+
+			// Add camera controls (OrbitControls with constrained vertical tilt)
+			const controls = new OrbitControls(camera, renderer.domElement);
+			controls.minDistance = 200;
+			controls.maxDistance = 800;
+			controls.enablePan = false;                // keep interaction focused on rotation/zoom
+			controls.rotateSpeed = 1.5;
+			controls.enableDamping = true;
+			controls.dampingFactor = 0.08;
+			// Constrain vertical angle so left/right rotation is primary but top/bottom can still be seen
+			const tiltLimit = Math.PI / 6; // allow ±30° from equator
+			controls.minPolarAngle = Math.PI / 2 - tiltLimit;
+			controls.maxPolarAngle = Math.PI / 2 + tiltLimit;
+			// Ensure camera initially looks at globe center
+			camera.position.set(0, 0, 300);
+			controls.target.set(0, 0, 0);
+			controls.update();
+
+			// Kick-off renderer
+			(function animate() { // IIFE
+				// Frame cycle
+				controls.update();
+				renderer.render(scene, camera);
+				requestAnimationFrame(animate);
+			})();
+		});
+	</script>
+
+	<style>
+	/* ...existing styles... */
+	.info {
+		position: fixed;
+		top: 12px;
+		left: 12px;
+		padding: 16px 20px;
+		font: 18px/24px Arial, Helvetica, sans-serif;
+		background: rgba(255,255,255,0.85);
+		box-shadow: 0 0 15px rgba(0,0,0,0.2);
+		border-radius: 5px;
+		z-index: 1000;
+		color: #222;
+		min-width: 200px;
+	}
+	.info h4 {
+		margin: 0 0 5px;
+		color: #555;
+		font-weight: 600;
+		font-size: 20px;
+	}
+	.info .content {
+		white-space: nowrap;
+	}
+	</style>
+</body>
+</html>
