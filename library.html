@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Library</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Funnel+Display:wght@400;500;600;700&family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+    <nav class="top-nav">
+        <div class="nav-left">
+            <div class="logo nav-link" data-target="section1">
+                <img src="img/logo.png" alt="Logo" />
+            </div>
+            <ul>
+                <li onclick="location.href='index.html'">Home</li>
+                <li onclick="location.href='index.html#section2'">Narration</li>
+                <li onclick="location.href='cartography.html'">Cartography</li>
+                <li onclick="location.href='library.html'">Library</li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="library-page">
+
+        <section class="library-filter-shell">
+            <div class="filter-panel">
+                <div class="search-section">
+                    <div class="compact-search-wrapper">
+                        <div class="search-icon-small">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#edf8d1" stroke-width="2.5">
+                                <circle cx="11" cy="11" r="8"/>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                            </svg>
+                        </div>
+                        <input id="compactSearchInput" type="text" class="search-input-compact" placeholder="Search by name, country or location..." />
+                        <div id="searchSuggestions" class="search-suggestions hidden" aria-hidden="true"></div>
+                    </div>
+                </div>
+                <div id="categoryBar" class="filter-bar">
+                    <div class="filter-buttons-group">
+                        <button id="countryFilterBtn" type="button" class="filter-category filter-chip active" data-filter="country">
+                            Country
+                            <span class="count badge-count" aria-hidden="true"></span>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                        </button>
+                        
+                        <button id="mediumFilterBtn" type="button" class="filter-category filter-chip" data-filter="medium">
+                            Medium
+                            <span class="count badge-count" aria-hidden="true"></span>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                        </button>
+                        <button id="decadeFilterBtn" type="button" class="filter-category filter-chip" data-filter="decade">Decade <span class="count badge-count" aria-hidden="true"></span> <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></button>
+                        <button id="organisationFilterBtn" type="button" class="filter-category filter-chip" data-filter="organisation">Organisation <span class="count badge-count" aria-hidden="true"></span> <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></button>
+                        <button id="genreFilterBtn" type="button" class="filter-category filter-chip" data-filter="genre">Genre <span class="count badge-count" aria-hidden="true"></span> <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></button>
+                        <button id="placeFilterBtn" type="button" class="filter-category filter-chip" data-filter="place">Lives/Works <span class="count badge-count" aria-hidden="true"></span> <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></button>
+                        <button id="clearAllButton" type="button" class="clear-all-btn">Clear all</button>
+                    </div>
+                </div>
+                <div class="active-filters-info" id="activeFiltersContainer">
+                    <span style="color: rgba(255,255,255,0.5); font-size: 12px;">No active filters</span>
+                </div>
+            </div>
+            <div id="filterControls" class="filter-sidebar hidden"></div>
+            <div id="filterBackdrop" class="backdrop"></div>
+        </section>
+
+        <section class="artist-gallery">
+            <div id="artistGrid" class="artist-grid"></div>
+        </section>
+    </main>
+
+    <script src="library.js"></script>
+</body>
+
+</html>

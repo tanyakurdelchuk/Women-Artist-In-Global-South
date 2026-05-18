@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Women Artists from the Global South</title>
+    <link rel="stylesheet" href="styles.css" />
+    
+    <!-- Import Maps -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://esm.sh/three",
+            "three/": "https://esm.sh/three/"
+        }
+    }
+    </script>
+    
+    <!-- GSAP -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+</head>
+
+<body>
+    <!-- NAVIGATION -->
+    <nav class="top-nav">
+        <div class="nav-left">
+            <div class="logo nav-link" data-target="section1">
+                <img src="img/logo.png" alt="Logo" />
+            </div>
+            <ul>
+                <li onclick="location.href='index.html'">Home</li>
+                <li onclick="location.href='index.html#section2'">Narration</li>
+                <li onclick="location.href='cartography.html'">Cartography</li>
+                <li onclick="location.href='library.html'">Library</li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- GLOBE CONTAINER -->
+    <div id="globe-container">
+        <div id="globeViz"></div>
+    </div>
+
+    
+
+
+    <!-- SECTIONS -->
+
+    <section id="section1" class="panel panel-1">
+        <div class="hero-content">
+            <h1 class="title">Women Artists<br>from the Global South</h1>
+            <p class="subtitle">Exploring untold narratives through contemporary art</p>
+            <div class="scroll-indicator">
+                <span>▼</span>
+                <p>Scroll to explore</p>
+            </div>
+        </div>
+    </section>
+
+    <div id="section1-bg"></div>
+    
+
+    <section id="section2" class="panel panel-2">
+        <div class="sidebar">
+            <h1>Introduction to Global South</h1>
+            <h2>What does Global South mean ?</h2>
+            <p>The Global South is a term describing a broad grouping of countries, primarily from Africa, Asia, Latin America, and Oceania, that share a sense of underrepresentation in international systems. It is not a formal bloc nor strictly geographical, as it includes countries like China and India. Key groupings such as the G77 and the Non-Aligned Movement represent these nations as they assert themselves against a world order they believe was designed by and for Western powers. They argue that multilateral institutions like the UN, World Bank, and IMF benefit "only the selected few" and fail to adequately represent their interests.</p>
+            <p>These countries often bear a disproportionate burden from global issues—such as climate change, pandemics, and economic crises—that they did not create. Consequently, many are resisting pressure to align with major powers like the US, China, or Russia. However, the term "Global South" itself is contentious. Critics argue it is an overly simplistic label that masks the vast diversity among its members, from small island states to major economies, making unified action difficult and potentially creating a "barrier to understanding a complex world."</p>
+        </div>
+    </section>
+
+    <section id="section3" class="panel panel-3">
+        <div class="sidebar">
+            <h2> Women in Global South</h2>
+            <p>A unique and profound difficulty faced by women in the Global South is the struggle against distorted and homogenizing representations, where media from the Global North often portrays them through narrow, stereotypical lenses as faceless laborers, exoticized figures, or passive victims. This "othering" denies their individuality and agency, making it difficult for their authentic voices to be heard. It is precisely for this reason that self-expression becomes a crucial tool for personal empowerment and a powerful form of activism. Through creative mediums and community organizing, women can challenge these oppressive stereotypes, tell their own stories, reclaim their identities, and build solidarity across movements, shifting the narrative from victimhood to leadership.</p>
+            <p>This act of self-expression is especially vital because the challenges they face are compounded by gender discrimination. While men in these regions may face economic and political hardships, women from the same communities face those same challenges plus systemic barriers like the disproportionate burden of unpaid care work and legal inequities. This distinctly gendered cycle of dependency and limited opportunity makes their struggle uniquely difficult. Ultimately, supporting their expression and leadership is fundamental to achieving genuine equality, as it ensures solutions to global challenges are shaped by those who understand these intersecting struggles most intimately.</p>
+        </div>
+    </section>
+
+    <section id="section4" class="panel panel-4">
+        <div class="sidebar">
+            <h2>Women ARTIST in the Global South</h2>
+            <p>Their artistic voices and perspectives are likely underrepresented in global cultural institutions and markets that remain dominated by Western countries and narratives. At the same time, these artists carry unique stories shaped by the inequities, resilience, and complexities described above, including experiences of colonialism's legacy, climate vulnerability, and navigating shifting global power dynamics. </p>
+            <p>They face a dual challenge of fighting for recognition in international art worlds while simultaneously avoiding being pigeonholed or exoticized simply as "Global South artists" rather than being appreciated as artists in their own right. However, this positioning also offers opportunities for solidarity, allowing them to connect with other artists across the Global South who face similar challenges regarding representation, resources, and the struggle to have their creative visions heard on equal terms in global conversations.</p>
+        </div>
+    </section>
+
+    <section id="section5" class="panel panel-5">
+        <div class="sidebar">
+            <h1>Featured Artists</h1>
+            <h2>artist 1</h2>
+            <p>artist presentation</p>
+            <p>artist presentation</p>
+        </div>
+    </section>
+
+    <section id="section6" class="panel panel-6">
+        <div class="sidebar">
+            <h2>artist 2</h2>
+            <p>artist presentation</p>
+            <p>artist presentation</p>
+        </div>
+    </section>
+
+    <section id="section7" class="panel panel-7">
+        <div class="sidebar">
+            <h2>Current artist presentation</h2>
+            <p>artist presentation</p>
+            <p>artist presentation</p>
+        </div>
+    </section>
+
+    <section id="section8" class="panel panel-8">
+        <div class="final-message">
+            <h2>Continue the Journey</h2>
+            <p>This exhibition is an invitation to explore further.<br>
+            Visit our Library and Cartography sections to discover individual artists and their works.</p>
+            <div class="final-links">
+                <a href="library.html">Explore Library</a>
+                <a href="cartography.html">View Cartography</a>
+            </div>
+        </div>
+    </section>
+
+    <div id="radial-gradient-bg"></div>
+
+    <script type="module" src="script.js"></script>
+</body>
+</html>
