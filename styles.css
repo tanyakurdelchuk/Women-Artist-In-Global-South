@@ -368,9 +368,16 @@ body::-webkit-scrollbar {
 .library-page {
     position: relative;
     min-height: calc(100vh - 70px);
-    padding-top: 220px;
     padding-bottom: 120px;
     background: #0b0f22;
+}
+
+.library-filter-shell {
+    position: sticky;
+    top: 70px;
+    z-index: 999;
+    background: transparent;
+    padding-top: 16px;
 }
 
 .library-intro {
@@ -416,12 +423,6 @@ body::-webkit-scrollbar {
     border: 1px solid rgba(163, 165, 255, 0.2);
     margin: 0 auto 32px;
     max-width: 1400px;
-}
-/* make filter panel sticky below top nav */
-.filter-panel {
-    position: sticky;
-    top: 70px;
-    z-index: 1000;
 }
 
 /* Search suggestions dropdown */
@@ -873,6 +874,42 @@ hr {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     gap: 24px;
+}
+
+.artist-pagination {
+    margin-top: 28px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+
+.artist-pagination .pagination-button {
+    min-width: 38px;
+    height: 38px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(18,24,53,0.95);
+    color: #edf8d1;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: transform .18s ease, background .18s ease, border-color .18s ease;
+    padding: 0 14px;
+    font-size: 0.95rem;
+}
+
+.artist-pagination .pagination-button:hover,
+.artist-pagination .pagination-button.active {
+    background: #7d58dc;
+    border-color: #a3a5ff;
+    color: white;
+    transform: translateY(-1px);
+}
+
+.artist-pagination .pagination-button.disabled {
+    opacity: 0.45;
+    cursor: default;
+    transform: none;
 }
 
 .artist-card {

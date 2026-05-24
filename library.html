@@ -24,6 +24,7 @@
                 <li onclick="location.href='index.html#section2'">Narration</li>
                 <li onclick="location.href='cartography.html'">Cartography</li>
                 <li onclick="location.href='library.html'">Library</li>
+                <li onclick="location.href='news.html'">News</li>
             </ul>
         </div>
     </nav>
@@ -65,7 +66,8 @@
                     </div>
                 </div>
                 <div class="active-filters-info" id="activeFiltersContainer">
-                    <span style="color: rgba(255,255,255,0.5); font-size: 12px;">No active filters</span>
+                    <span id="artistCount" class="artist-count">0 artists</span>
+                    <span id="activeFilters" class="active-filter-label">No filters selected</span>
                 </div>
             </div>
             <div id="filterControls" class="filter-sidebar hidden"></div>
@@ -74,6 +76,7 @@
 
         <section class="artist-gallery">
             <div id="artistGrid" class="artist-grid"></div>
+            <div id="artistPagination" class="artist-pagination"></div>
         </section>
     </main>
 

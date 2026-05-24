@@ -1,4 +1,5 @@
 const artistGrid = document.getElementById('artistGrid');
+const artistPagination = document.getElementById('artistPagination');
 const filterControls = document.getElementById('filterControls');
 const artistCount = document.getElementById('artistCount');
 const activeFiltersLabel = document.getElementById('activeFilters');
@@ -7,6 +8,9 @@ const categoryBar = document.getElementById('categoryBar');
 
 let artists = [];
 let currentCategory = 'country';
+let currentArtistPage = 1;
+const artistPageSize = 16;
+let lastFilteredArtists = [];
 
 const categoryLabels = {
     country: 'Country',
@@ -82,6 +86,51 @@ function setupArtistCardInteractions() {
     });
 }
 
+function renderArtistPagination(totalItems, currentPage, totalPages) {
+    if (!artistPagination) return;
+    if (totalPages <= 1) {
+        artistPagination.innerHTML = '';
+        return;
+    }
+
+    const buttons = [];
+    buttons.push(`<button class="pagination-button${currentPage === 1 ? ' disabled' : ''}" data-page="${currentPage - 1}">◀</button>`);
+
+    const startPage = Math.max(1, currentPage - 2);
+    const endPage = Math.min(totalPages, currentPage + 2);
+
+    if (startPage > 1) {
+        buttons.push(`<button class="pagination-button" data-page="1">1</button>`);
+        if (startPage > 2) {
+            buttons.push(`<span class="pagination-button disabled">…</span>`);
+        }
+    }
+
+    for (let page = startPage; page <= endPage; page += 1) {
+        buttons.push(`<button class="pagination-button${page === currentPage ? ' active' : ''}" data-page="${page}">${page}</button>`);
+    }
+
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+            buttons.push(`<span class="pagination-button disabled">…</span>`);
+        }
+        buttons.push(`<button class="pagination-button" data-page="${totalPages}">${totalPages}</button>`);
+    }
+
+    buttons.push(`<button class="pagination-button${currentPage === totalPages ? ' disabled' : ''}" data-page="${currentPage + 1}">▶</button>`);
+
+    artistPagination.innerHTML = buttons.join('');
+    artistPagination.querySelectorAll('.pagination-button').forEach(button => {
+        if (button.classList.contains('disabled')) return;
+        button.addEventListener('click', () => {
+            const page = Number(button.dataset.page);
+            if (!page || page === currentArtistPage) return;
+            currentArtistPage = page;
+            renderArtistCards(lastFilteredArtists, currentArtistPage);
+        });
+    });
+}
+
 function loadData() {
     fetch('./assets/data.json')
         .then(res => res.json())
@@ -106,7 +155,8 @@ function loadData() {
             });
 
             renderCategoryButtons();
-            renderArtistCards(artists);
+            lastFilteredArtists = artists;
+            renderArtistCards(artists, currentArtistPage);
             updateFooter(artists.length, []);
         })
         .catch(error => {
@@ -258,13 +308,13 @@ function renderFilterOptions(category, showPopover = true) {
     const backdrop = document.getElementById('filterBackdrop');
     if (backdrop) backdrop.classList.add('visible');
 
-    // position below the category bar
+    // position below the category bar (sticky positioning)
     const bar = document.getElementById('categoryBar');
     const sidebarEl = filterControls;
     if (bar && sidebarEl) {
         const rect = bar.getBoundingClientRect();
-        const top = rect.bottom + window.scrollY;
-        sidebarEl.style.position = 'absolute';
+        const top = rect.bottom;
+        sidebarEl.style.position = 'fixed';
         sidebarEl.style.top = top + 'px';
         sidebarEl.style.left = '1rem';
         sidebarEl.style.right = '1rem';
@@ -342,29 +392,41 @@ function openFilterPopover(category) {
 }
 
 function applyFilters() {
-    const activeSet = selectedFiltersByCategory[currentCategory];
-    const field = categoryFieldMap[currentCategory];
+    let filtered = artists.slice();
+    const activeSelections = [];
 
-    const filtered = artists.filter(artist => {
-        if (!activeSet.size) {
-            return true;
+    Object.keys(categoryFieldMap).forEach(category => {
+        const activeSet = selectedFiltersByCategory[category];
+        const field = categoryFieldMap[category];
+        if (activeSet && activeSet.size) {
+            activeSelections.push(...Array.from(activeSet));
+            filtered = filtered.filter(artist => {
+                const raw = normalizeText(artist.source[field]);
+                return activeSet.has(raw);
+            });
         }
-
-        const raw = normalizeText(artist.source[field]);
-        return activeSet.has(raw);
     });
 
-    renderArtistCards(filtered);
-    updateFooter(filtered.length, Array.from(activeSet));
+    currentArtistPage = 1;
+    lastFilteredArtists = filtered;
+    renderArtistCards(filtered, currentArtistPage);
+    updateFooter(filtered.length, activeSelections);
 }
 
-function renderArtistCards(data) {
-    if (!data.length) {
+function renderArtistCards(data, page = 1) {
+    lastFilteredArtists = data;
+    const totalPages = Math.max(1, Math.ceil(data.length / artistPageSize));
+    const currentPage = Math.min(Math.max(1, page), totalPages);
+    const start = (currentPage - 1) * artistPageSize;
+    const pageData = data.slice(start, start + artistPageSize);
+
+    if (!pageData.length) {
         artistGrid.innerHTML = '<div class="artist-empty">No artists match the selected filters.</div>';
+        renderArtistPagination(data.length, currentPage, totalPages);
         return;
     }
 
-    artistGrid.innerHTML = data
+    artistGrid.innerHTML = pageData
         .map(artist => {
             const hasImage = artist.image && artist.image !== 'Unknown';
             const imageHtml = hasImage
@@ -399,6 +461,7 @@ function renderArtistCards(data) {
 
     // attach interactions after rendering
     setupArtistCardInteractions();
+    renderArtistPagination(data.length, currentPage, totalPages);
 }
 
 function updateFooter(count, filters) {
@@ -417,6 +480,7 @@ function updateFooter(count, filters) {
 
 function clearAllFilters() {
     Object.values(selectedFiltersByCategory).forEach(set => set.clear());
+    currentArtistPage = 1;
     applyFilters();
     renderCategoryButtons();
 }
