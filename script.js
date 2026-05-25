@@ -74,8 +74,8 @@ function initGlobe() {
             controls.rotateSpeed = 5.0;
             
             // Initial Globe position and scale
-            Globe.position.set(0, 0, 0);
-            Globe.scale.set(1, 1, 1);
+            Globe.position.set(0, -120, 0);
+            Globe.scale.set(2.0, 2.0, 2.0);
             
             // SIDEBAR ANIMATIONS 
             for (let i = 2; i <= 7; i++) {
@@ -108,17 +108,36 @@ function initGlobe() {
             
             // GLOBE SCROLL ANIMATIONS
             
-            // Timeline for section 1 (hero) - Earth is centered
+            // Timeline for section 1 (hero) - Earth starts zoomed and lowers, then returns to normal by panel 2
             const section1TL = gsap.timeline({
                 scrollTrigger: {
                     trigger: "#section1",
                     start: "top top",
-                    end: "bottom top",
+                    end: "bottom top+=30%",
                     scrub: 1.5,
                     markers: false
                 }
             });
-            
+
+            section1TL.fromTo(Globe.position,
+                { x: 0, y: -380, z: 0 },
+                {
+                    x: 0,
+                    y: 0,
+                    z: 0,
+                    ease: "power2.inOut"
+                }, 0
+            );
+
+            section1TL.fromTo(Globe.scale,
+                { x: 3.5, y: 3.5, z: 3.5 },
+                {
+                    x: 1,
+                    y: 1,
+                    z: 1,
+                    ease: "power2.inOut"
+                }, 0
+            );
 
             // Timeline for section 2 - Move Earth to right
             const section2TL = gsap.timeline({
@@ -267,6 +286,9 @@ document.addEventListener('DOMContentLoaded', function() {
     gradientDiv.id = 'radial-gradient-bg';
     document.body.appendChild(gradientDiv);
     
+    // Create accordion (after hero)
+    if (typeof createAccordion === 'function') createAccordion();
+
     // Setup gradient control after a brief delay
     setTimeout(setupGradientControl, 100);
 });
@@ -276,4 +298,129 @@ if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initGlobe);
 } else {
     initGlobe();
+
+    // -----------------------------
+    // Accordion builder
+
+    function createAccordion() {
+        const menuItems = [
+            {
+                id: "why",
+                title: "Why This Project",
+                description: "Exploring the intersection of art, technology, and human creativity through an innovative digital platform.",
+                color: "#edf8d1",
+                bgColor: "#0a0e1c",
+                textColor: "#edf8d1",
+                hexagonImg: "img/hexagon1.png",
+                maskImage: "img/hexagon1.png",
+                contentImage: "img/img5G839312.png",
+                href: "index.html#section2"
+            },
+            {
+                id: "artists",
+                title: "The Artists",
+                description: "Meet the talented creators behind this collection, each bringing their unique vision and style to the platform.",
+                color: "#a3a5ff",
+                bgColor: "#0a0e1c",
+                textColor: "#edf8d1",
+                hexagonImg: "img/hexagon2.png",
+                maskImage: "img/hexagon2.png",
+                contentImage: "img/imgImage1.png",
+                href: "library.html"
+            },
+            {
+                id: "data",
+                title: "View Data",
+                description: "Dive into the analytics and insights that power our understanding of creative trends and audience engagement.",
+                color: "#94b4d0",
+                bgColor: "#0a0e1c",
+                textColor: "#edf8d1",
+                hexagonImg: "img/hexagon3.png",
+                maskImage: "img/hexagon3.png",
+                contentImage: "img/imgImage28.png",
+                href: "cartography.html"
+            }
+        ];
+
+        const container = document.getElementById('accordionContainer');
+        if (!container) return;
+
+        function createEl(tag, attrs = {}, children = []) {
+            const el = document.createElement(tag);
+            Object.keys(attrs).forEach(key => {
+                if (key === 'className') el.className = attrs[key];
+                else if (key === 'style' && typeof attrs[key] === 'object') Object.assign(el.style, attrs[key]);
+                else el.setAttribute(key, attrs[key]);
+            });
+            children.forEach(child => {
+                if (typeof child === 'string') el.appendChild(document.createTextNode(child));
+                else el.appendChild(child);
+            });
+            return el;
+        }
+
+        menuItems.forEach(item => {
+            const wrapper = createEl('div', { className: 'accordion-item', id: `item-${item.id}` });
+
+            const collapsed = createEl('div', { className: 'collapsed-state', style: { borderBottom: `2px solid ${item.color}` } });
+            const titleP = createEl('p', { className: 'collapsed-title', style: { color: item.color } }, [item.title]);
+            const hexContainer = createEl('div', { className: 'hexagon-indicator' });
+            const hexImg = createEl('img', { src: item.hexagonImg, alt: 'hexagon' });
+            hexContainer.appendChild(hexImg);
+            collapsed.appendChild(titleP);
+            collapsed.appendChild(hexContainer);
+
+            const expanded = createEl('div', { className: 'expanded-state', style: { backgroundColor: item.bgColor } });
+            const inner = createEl('div', { className: 'expanded-inner' });
+            const textDiv = createEl('div', { className: 'expanded-text' });
+            const expTitle = createEl('p', { className: 'expanded-title', style: { color: item.textColor } }, [item.title]);
+            const expDesc = createEl('p', { className: 'expanded-desc', style: { color: item.textColor } }, [item.description]);
+            textDiv.appendChild(expTitle);
+            textDiv.appendChild(expDesc);
+
+            const maskWrapper = createEl('div', { className: 'masked-image-wrapper' });
+            const maskInner = createEl('div', { className: 'masked-image-inner', style: { maskImage: `url('${item.maskImage}')`, WebkitMaskImage: `url('${item.maskImage}')` } });
+            const contentImg = createEl('img', { src: item.contentImage, alt: item.title });
+            maskInner.appendChild(contentImg);
+            maskWrapper.appendChild(maskInner);
+
+            inner.appendChild(textDiv);
+            inner.appendChild(maskWrapper);
+            expanded.appendChild(inner);
+
+            wrapper.appendChild(collapsed);
+            wrapper.appendChild(expanded);
+
+            wrapper.addEventListener('mouseenter', () => {
+                document.querySelectorAll('.accordion-item').forEach(el => {
+                    if (el.id !== wrapper.id) {
+                        el.classList.remove('expanded');
+                        el.style.height = '220px';
+                    }
+                });
+                wrapper.classList.add('expanded');
+                wrapper.style.height = '395px';
+            });
+
+            wrapper.addEventListener('click', () => {
+                if (item.href) {
+                    window.location.href = item.href;
+                }
+            });
+
+            container.appendChild(wrapper);
+        });
+
+        container.addEventListener('mouseleave', () => {
+            setTimeout(() => {
+                const hovered = document.querySelector('.accordion-item:hover');
+                if (!hovered) {
+                    document.querySelectorAll('.accordion-item').forEach(el => {
+                        el.classList.remove('expanded');
+                        el.style.height = '220px';
+                    });
+                }
+            }, 50);
+        });
+    }
 }

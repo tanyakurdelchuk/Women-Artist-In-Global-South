@@ -30,9 +30,9 @@
             </div>
             <ul>
                 <li onclick="location.href='index.html'">Home</li>
-                <li onclick="location.href='index.html#section2'">Narration</li>
-                <li onclick="location.href='Cartography/upsidedown.html'">Cartography</li>
-                <li onclick="location.href='library.html'">Library</li>
+                <li onclick="location.href='index.html#section2'">Why this project</li>
+                <li onclick="location.href='cartography.html'">Data</li>
+                <li onclick="location.href='library.html'">The artists</li>
                 <li onclick="location.href='news.html'">News</li>
             </ul>
         </div>
@@ -60,6 +60,11 @@
     </section>
 
     <div id="section1-bg"></div>
+    
+    <!-- ACCORDION SECTION (after hero) -->
+    <section id="accordion" class="panel panel-accordion">
+        <div class="accordion-container" id="accordionContainer"></div>
+    </section>
     
 
     <section id="section2" class="panel panel-2">
@@ -119,13 +124,160 @@
             Visit our Library and Cartography sections to discover individual artists and their works.</p>
             <div class="final-links">
                 <a href="library.html">Explore Library</a>
-                <a href="Cartography/upsidedown.html">View Cartography</a>
+                <a href="cartography.html">View Cartography</a>
             </div>
         </div>
     </section>
 
     <div id="radial-gradient-bg"></div>
 
-    <script type="module" src="script.js"></script>
+        <script type="module" src="script.js"></script>
+        <!-- Standalone accordion builder (runs even if module imports fail) -->
+        <script>
+            (function(){
+                const menuItems = [
+                    { id: 'why', title: 'Why This Project', description: 'Exploring the intersection of art, technology, and human creativity through an innovative digital platform.', hexagonImg: 'img/hexagon1.png', maskImage: 'img/hexagon1.png', contentImage: 'img/why_this_project.png', bgColor: '#edf8d1', textColor: '#17182e', color: '#edf8d1', href: 'index.html#section2' },
+                    { id: 'artists', title: 'The Artists', description: 'Meet the talented creators behind this collection, each bringing their unique vision and style to the platform.', hexagonImg: 'img/hexagon2.png', maskImage: 'img/hexagon2.png', contentImage: 'img/the_artists.png', bgColor: '#a3a5ff', textColor: '#17182e', color: '#a3a5ff', href: 'library.html' },
+                    { id: 'data', title: 'View Data', description: 'Dive into the analytics and insights that power our understanding of creative trends and audience engagement.', hexagonImg: 'img/hexagon3.png', maskImage: 'img/hexagon3.png', contentImage: 'img/the_map.png', bgColor: '#94b4d0', textColor: '#17182e', color: '#94b4d0', href: 'cartography.html' }
+                ];
+
+                function createEl(tag, attrs={}, children=[]) {
+                    const el = document.createElement(tag);
+                    Object.keys(attrs).forEach(k=>{
+                        if(k==='className') el.className = attrs[k];
+                        else if(k==='style' && typeof attrs[k]==='object') Object.assign(el.style, attrs[k]);
+                        else el.setAttribute(k, attrs[k]);
+                    });
+                    children.forEach(c=> typeof c === 'string' ? el.appendChild(document.createTextNode(c)) : el.appendChild(c));
+                    return el;
+                }
+
+                function build() {
+                    const container = document.getElementById('accordionContainer');
+                    if(!container) return;
+                    if(container.dataset.built) return;
+                    menuItems.forEach(item=>{
+                        const wrapper = createEl('div',{className:'accordion-item', id:'item-'+item.id});
+                        const collapsed = createEl('div',{className:'collapsed-state', style:{borderBottom:`2px solid ${item.color}`}});
+                        const title = createEl('p',{className:'collapsed-title', style:{color:item.color}},[item.title]);
+                        const hex = createEl('div',{className:'hexagon-indicator'});
+                        const hexImg = createEl('img',{src:item.hexagonImg, alt:'hex'});
+                        hex.appendChild(hexImg);
+                        collapsed.appendChild(title); collapsed.appendChild(hex);
+
+                        const expanded = createEl('div',{className:'expanded-state', style:{backgroundColor:item.bgColor}});
+                        const inner = createEl('div',{className:'expanded-inner'});
+                        const textDiv = createEl('div',{className:'expanded-text'});
+                        const h = createEl('p',{className:'expanded-title', style:{color:item.textColor}},[item.title]);
+                        const p = createEl('p',{className:'expanded-desc', style:{color:item.textColor}},[item.description]);
+                        textDiv.appendChild(h); textDiv.appendChild(p);
+                        const maskWrap = createEl('div',{className:'masked-image-wrapper'});
+                        const maskInner = createEl('div',{className:'masked-image-inner', style:{maskImage:`url('${item.maskImage}')`, WebkitMaskImage:`url('${item.maskImage}')`, maskRepeat:'no-repeat', WebkitMaskRepeat:'no-repeat', maskPosition:'center', WebkitMaskPosition:'center', maskSize:'cover', WebkitMaskSize:'cover', maskMode:'alpha'}});
+                        const contentImg = createEl('img',{src:item.contentImage, alt:item.title});
+                        maskInner.appendChild(contentImg); maskWrap.appendChild(maskInner);
+                        inner.appendChild(textDiv); inner.appendChild(maskWrap); expanded.appendChild(inner);
+                        wrapper.appendChild(collapsed); wrapper.appendChild(expanded);
+
+                        const collapse = (el) => {
+                            el.classList.remove('expanded');
+                            el.style.height = '220px';
+                        };
+                        const expand = (el) => {
+                            el.classList.add('expanded');
+                            el.style.height = '395px';
+                        };
+                        let hoverTimeout = null;
+
+                        wrapper.addEventListener('mouseenter', () => {
+                            clearTimeout(hoverTimeout);
+                            document.querySelectorAll('.accordion-item').forEach(el => {
+                                if (el !== wrapper) collapse(el);
+                            });
+                            expand(wrapper);
+                        });
+
+                        wrapper.addEventListener('mouseleave', () => {
+                            hoverTimeout = setTimeout(() => {
+                                if (!wrapper.matches(':hover') && !container.matches(':hover')) {
+                                    collapse(wrapper);
+                                }
+                            }, 80);
+                        });
+
+                        wrapper.addEventListener('click', () => {
+                            if (item.href) window.location.href = item.href;
+                        });
+                        container.appendChild(wrapper);
+                    });
+                    container.dataset.built = '1';
+                }
+
+                if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', build); else build();
+            })();
+        </script>
+        <footer class="footer">
+            <div class="footer-inner">
+                <div class="footer-brand">
+                    <div class="footer-logo-row">
+                        <img src="img/logo.png" alt="Logo" class="footer-logo-img" />
+                        <div class="footer-title">
+                            <p><span class="purple">Women Artists</span></p>
+                            <p><span class="purple">from the </span><span class="lime">Global</span></p>
+                            <p class="lime">South</p>
+                        </div>
+                    </div>
+                    <p class="footer-desc">An ongoing exhibition exploring untold narratives through contemporary art, data, and lived experience.</p>
+                    <div class="footer-socials">
+                        <a href="#" class="social-btn" title="Instagram">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/>
+                                <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/>
+                            </svg>
+                        </a>
+                        <a href="#" class="social-btn" title="LinkedIn">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/>
+                                <rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/>
+                            </svg>
+                        </a>
+                        <a href="#" class="social-btn" title="Email">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                                <polyline points="22,6 12,13 2,6"/>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="footer-right">
+                    <div class="footer-nav-cols">
+                        <div class="footer-col">
+                            <h4 class="footer-col__heading">NAVIGATE</h4>
+                            <ul>
+                                <li>Home</li>
+                                <li>Why This Project</li>
+                                <li>The Artists</li>
+                                <li>The Map</li>
+                            </ul>
+                        </div>
+                        <div class="footer-col">
+                            <h4 class="footer-col__heading">ABOUT</h4>
+                            <ul>
+                                <li>Editorial team</li>
+                                <li>Contact us</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="newsletter">
+                        <p class="newsletter__label">Stay informed — new artists added regularly</p>
+                        <div class="newsletter__form">
+                            <input type="email" placeholder="your@email." class="newsletter__input" />
+                            <button class="newsletter__btn">Subscribe</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </footer>
 </body>
 </html>

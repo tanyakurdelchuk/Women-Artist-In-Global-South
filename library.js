@@ -68,18 +68,25 @@ function handleImageError(img) {
 }
 
 function handleProfileClick(e) {
+    // Navigate to artist detail page when profile or card is clicked
     e.stopPropagation();
-    const btn = e.currentTarget;
-    const card = btn.closest('.artist-card');
-    let name = 'Artist';
-    if (card) {
-        const nameEl = card.querySelector('.artist-name');
-        if (nameEl) name = nameEl.innerText;
-    }
-    alert(`Viewing profile: ${name}`);
+    const el = e.currentTarget;
+    const card = el.closest('.artist-card');
+    if (!card) return;
+    const nameEl = card.querySelector('.artist-name');
+    const name = nameEl ? nameEl.innerText : 'Unknown';
+    window.location.href = `artist-detail.html?name=${encodeURIComponent(name)}`;
 }
 
 function setupArtistCardInteractions() {
+    // Make whole card clickable
+    document.querySelectorAll('.artist-card').forEach(card => {
+        card.style.cursor = 'pointer';
+        card.removeEventListener('click', handleProfileClick);
+        card.addEventListener('click', handleProfileClick);
+    });
+
+    // Also attach to view button to ensure consistent behavior
     document.querySelectorAll('.view-btn').forEach(btn => {
         btn.removeEventListener('click', handleProfileClick);
         btn.addEventListener('click', handleProfileClick);
@@ -499,6 +506,39 @@ categoryButtons.forEach(button => {
 const clearAllButton = document.getElementById('clearAllButton');
 if (clearAllButton) {
     clearAllButton.addEventListener('click', clearAllFilters);
+}
+
+let searchQuery = '';
+
+function updateUI() {
+    let filtered = artists.slice();
+
+    // Filter by search query
+    if (searchQuery && searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        filtered = filtered.filter(artist => 
+            artist.name.toLowerCase().includes(q) ||
+            artist.nationality.toLowerCase().includes(q) ||
+            artist.place.toLowerCase().includes(q)
+        );
+    }
+
+    // Apply category filters
+    Object.keys(categoryFieldMap).forEach(category => {
+        const activeSet = selectedFiltersByCategory[category];
+        const field = categoryFieldMap[category];
+        if (activeSet && activeSet.size) {
+            filtered = filtered.filter(artist => {
+                const raw = normalizeText(artist.source[field]);
+                return activeSet.has(raw);
+            });
+        }
+    });
+
+    currentArtistPage = 1;
+    lastFilteredArtists = filtered;
+    renderArtistCards(filtered, currentArtistPage);
+    updateFooter(filtered.length, Array.from(Object.values(selectedFiltersByCategory)).reduce((acc, set) => acc.concat(Array.from(set)), []));
 }
 
 document.addEventListener('click', event => {

@@ -30,9 +30,14 @@
       .then(res => res.json())
       .then(data => {
         // Find the artist by name (case-insensitive)
+        const searchName = (artistName || '').toString().trim().toLowerCase();
         const artistData = data.find(item => {
-          const names = (item['Auteur(s)'] || item['Tous les auteur(s) des liées'] || '').split(',');
-          return names.some(name => name.trim().toLowerCase() === artistName.toLowerCase());
+          const full = (item['Auteur(s)'] || item['Tous les auteur(s) des liées'] || '').toString().trim();
+          if (!full) return false;
+          if (full.toLowerCase() === searchName) return true;
+          const parts = full.split(',').map(p => p.trim().toLowerCase());
+          if (parts.includes(searchName)) return true;
+          return false;
         });
 
         if (!artistData) {
