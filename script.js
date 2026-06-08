@@ -78,7 +78,7 @@ function initGlobe() {
             Globe.scale.set(2.0, 2.0, 2.0);
             
             // SIDEBAR ANIMATIONS 
-            for (let i = 2; i <= 7; i++) {
+            for (let i = 2; i <= 10; i++) {
                 // Create timeline for sidebar entrance
                 const sidebarTL = gsap.timeline({
                     scrollTrigger: {
@@ -120,7 +120,7 @@ function initGlobe() {
             });
 
             section1TL.fromTo(Globe.position,
-                { x: 0, y: -380, z: 0 },
+                { x: 0, y: -400, z: 0 },
                 {
                     x: 0,
                     y: 0,
@@ -196,7 +196,7 @@ function initGlobe() {
             // Timeline for final section - Fade out Earth
             const finalSectionTL = gsap.timeline({
                 scrollTrigger: {
-                    trigger: "#section8",
+                    trigger: "#section11",
                     start: "top 50%",
                     end: "top 20%",
                     scrub: 1,
@@ -211,13 +211,13 @@ function initGlobe() {
             });
             
             // FINAL PANEL ANIMATION
-            gsap.from("#section8 .final-message", {
+            gsap.from("#section11 .final-message", {
                 y: 50,
                 opacity: 0,
                 duration: 1.5,
                 ease: "power3.out",
                 scrollTrigger: {
-                    trigger: "#section8",
+                    trigger: "#section11",
                     start: "top 80%",
                     once: true
                 }
@@ -272,7 +272,7 @@ function setupGradientControl() {
     });
     
     ScrollTrigger.create({
-        trigger: "#section8",
+        trigger: "#section11",
         start: "top center",
         onEnter: () => body.classList.remove('show-gradient'),
         onLeaveBack: () => body.classList.add('show-gradient')
@@ -291,6 +291,78 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Setup gradient control after a brief delay
     setTimeout(setupGradientControl, 100);
+
+    // --- Page stepper initialization (moved from index.html) ---
+    (function(){
+        const stepper = document.getElementById('page-stepper');
+        const stepperInner = document.getElementById('stepperInner');
+        if(!stepper || !stepperInner) return;
+
+        // Use 10 steps for the updated sequence after adding two new pages
+        const mainSections = ['section2','section3','section4','section5','section6','section7','section8','section9','section10','section11'];
+        const showFrom = 'section2';
+        const showTo = 'section11';
+
+        // Build step elements
+        mainSections.forEach((id, idx) => {
+            const item = document.createElement('div');
+            item.className = 'step-item pending';
+            item.dataset.target = id;
+
+            const circle = document.createElement('div');
+            circle.className = 'step-circle';
+            item.appendChild(circle);
+
+            if (idx < mainSections.length - 1) {
+                const line = document.createElement('div');
+                line.className = 'step-line';
+                item.appendChild(line);
+            }
+
+            item.addEventListener('click', () => {
+                const target = document.getElementById(item.dataset.target);
+                if (target) target.scrollIntoView({behavior:'smooth'});
+            });
+
+            stepperInner.appendChild(item);
+        });
+
+        function updateVisibilityAndState() {
+            const sections = mainSections.map(id => document.getElementById(id)).filter(Boolean);
+            if (!sections.length) return;
+
+            let mostVisible = {id: null, area: 0, index: 0};
+            sections.forEach((el, i) => {
+                const rect = el.getBoundingClientRect();
+                const visibleH = Math.max(0, Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0));
+                const area = visibleH * rect.width;
+                if (area > mostVisible.area) mostVisible = {id: el.id, area, index: i};
+            });
+
+            const showFromIndex = mainSections.indexOf(showFrom);
+            const showToIndex = mainSections.indexOf(showTo);
+            const currentIndex = mostVisible.id ? mostVisible.index : -1;
+            const shouldShow = currentIndex >= showFromIndex && currentIndex <= showToIndex;
+
+            stepper.style.opacity = shouldShow ? '1' : '0';
+            stepper.style.pointerEvents = shouldShow ? 'auto' : 'none';
+            stepper.setAttribute('aria-hidden', shouldShow ? 'false' : 'true');
+
+            const items = stepperInner.querySelectorAll('.step-item');
+            items.forEach((it, i) => {
+                it.classList.remove('done','active','pending');
+                if (i < currentIndex) it.classList.add('done');
+                else if (i === currentIndex) it.classList.add('active');
+                else it.classList.add('pending');
+            });
+        }
+
+        let tick = false;
+        function onTick(){ tick = false; updateVisibilityAndState(); }
+        ['scroll','resize','orientationchange'].forEach(ev => window.addEventListener(ev, () => { if (!tick) { tick = true; requestAnimationFrame(onTick); } }));
+
+        setTimeout(updateVisibilityAndState, 200);
+    })();
 });
 
 // Initialize when DOM is ready

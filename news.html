@@ -19,81 +19,227 @@
             <ul>
                 <li onclick="location.href='index.html'">Home</li>
                 <li onclick="location.href='index.html#section2'">Why this project</li>
-                <li onclick="location.href='Cartography/upsidedown.html'">Data</li>
+                <li onclick="location.href='cartography.html'">Data</li>
                 <li onclick="location.href='library.html'">The artists</li>
                 <li>News</li>
             </ul>
         </div>
+        <div class="nav-right">
+            <a href="contact.html" class="btn-contact-us">
+                <svg class="hex-icon-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <polygon points="12,2 22,8 22,16 12,22 2,16 2,8" />
+                </svg>
+                CONTACT US
+            </a>
+        </div>
     </nav>
 
-    <section class="panel">
-        <h1>News</h1>
-    </section>
+    <main class="news-page">
+        <section id="section1" class="news-hero">
+            <div class="news-hero-copy">
+                <h1><span class="title-purple">News &</span> <span class="title-yellow">Updates</span></h1>
+                <p>We recently invited Artist name to talk about her journey as an artist, and how her art process asserted her identity and place in the art world.</p>
+                <p>Discover other stories linked to research, fieldwork, interviews and critical writing across contemporary art and society.</p>
+            </div>
+            <div class="hero-video-card">
+                <div class="hero-video-inner">
+                    <div class="hero-video-thumb"></div>
+                    <button class="hero-play-circle" aria-label="Play featured video">
+                        <span></span>
+                    </button>
+                </div>
+            </div>
+        </section>
 
-        <footer class="footer">
-            <div class="footer-inner">
-                <div class="footer-brand">
-                    <div class="footer-logo-row">
-                        <img src="img/logo.png" alt="Logo" class="footer-logo-img" />
-                        <div class="footer-title">
-                            <p><span class="purple">Women Artists</span></p>
-                            <p><span class="purple">from the </span><span class="lime">Global</span></p>
-                            <p class="lime">South</p>
-                        </div>
+        <section class="news-filters">
+            <div class="filter-pill-group">
+                <button class="news-filter active" type="button">All</button>
+                <button class="news-filter" type="button">Announcements</button>
+                <button class="news-filter" type="button">Interviews</button>
+                <button class="news-filter" type="button">Articles</button>
+            </div>
+        </section>
+
+        <section class="news-grid">
+            <article class="news-card">
+                <div class="card-media">
+                    <div class="card-tag">Interview</div>
+                    <div class="card-duration">1:12:05</div>
+                </div>
+                <div class="card-content">
+                    <h3>Interview with Maria Thereza Alves</h3>
+                    <p class="card-summary">A long-form conversation tracing the artist’s research, archive practice and the systems shaping her work.</p>
+                    <p class="card-date">Oct 05, 20XX</p>
+                </div>
+            </article>
+
+            <article class="news-card">
+                <div class="card-media">
+                    <div class="card-tag">Interview</div>
+                    <div class="card-duration">41:10</div>
+                </div>
+                <div class="card-content">
+                    <h3>Interview with Elodie Brun on the term Global South</h3>
+                    <p class="card-summary">A reflective discussion on terminology, collaboration and the politics of cultural production today.</p>
+                    <p class="card-date">Sep 28, 20XX</p>
+                </div>
+            </article>
+
+            <article class="news-card">
+                <div class="card-media">
+                    <div class="card-tag">Article</div>
+                    <div class="card-duration">Read</div>
+                </div>
+                <div class="card-content">
+                    <h3>Article on discovering Villa Vassilieff through workshops and artistic creations</h3>
+                    <p class="card-summary">Field notes from a collaborative residency exploring memory, site and participatory practices.</p>
+                    <p class="card-date">Sep 15, 20XX</p>
+                </div>
+            </article>
+        </section>
+    </main>
+
+    <!-- Video Modal -->
+    <div id="videoModal" class="video-modal">
+        <div class="modal-content">
+            <button class="modal-close" aria-label="Close">&times;</button>
+            <div class="modal-video-container">
+                <video id="modalVideo" controls>
+                    <source src="" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+            <div class="modal-info">
+                <h2 id="modalTitle"></h2>
+                <p id="modalDescription"></p>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <div class="footer-logo-row">
+                    <img src="img/logo.png" alt="Logo" class="footer-logo-img" />
+                    <div class="footer-title">
+                        <p><span class="purple">Women Artists</span></p>
+                        <p><span class="purple">from the </span><span class="lime">Global</span></p>
+                        <p class="lime">South</p>
                     </div>
-                    <p class="footer-desc">An ongoing exhibition exploring untold narratives through contemporary art, data, and lived experience.</p>
-                    <div class="footer-socials">
-                        <a href="#" class="social-btn" title="Instagram">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/>
-                                <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/>
-                            </svg>
-                        </a>
-                        <a href="#" class="social-btn" title="LinkedIn">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/>
-                                <rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/>
-                            </svg>
-                        </a>
-                        <a href="#" class="social-btn" title="Email">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                                <polyline points="22,6 12,13 2,6"/>
-                            </svg>
-                        </a>
+                </div>
+                <p class="footer-desc">An ongoing exhibition exploring untold narratives through contemporary art, data, and lived experience.</p>
+                <div class="footer-socials">
+                    <a href="#" class="social-btn" title="Instagram">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/>
+                            <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/>
+                        </svg>
+                    </a>
+                    <a href="#" class="social-btn" title="LinkedIn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/>
+                            <rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/>
+                        </svg>
+                    </a>
+                    <a href="#" class="social-btn" title="Email">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                            <polyline points="22,6 12,13 2,6"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+
+            <div class="footer-right">
+                <div class="footer-nav-cols">
+                    <div class="footer-col">
+                        <h4 class="footer-col__heading">NAVIGATE</h4>
+                        <ul>
+                            <li>Home</li>
+                            <li>Why This Project</li>
+                            <li>The Artists</li>
+                            <li>The Map</li>
+                        </ul>
+                    </div>
+                    <div class="footer-col">
+                        <h4 class="footer-col__heading">ABOUT</h4>
+                        <ul>
+                            <li>Editorial team</li>
+                            <li>Contact us</li>
+                        </ul>
                     </div>
                 </div>
 
-                <div class="footer-right">
-                    <div class="footer-nav-cols">
-                        <div class="footer-col">
-                            <h4 class="footer-col__heading">NAVIGATE</h4>
-                            <ul>
-                                <li>Home</li>
-                                <li>Why This Project</li>
-                                <li>The Artists</li>
-                                <li>The Map</li>
-                            </ul>
-                        </div>
-                        <div class="footer-col">
-                            <h4 class="footer-col__heading">ABOUT</h4>
-                            <ul>
-                                <li>Editorial team</li>
-                                <li>Contact us</li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <div class="newsletter">
-                        <p class="newsletter__label">Stay informed — new artists added regularly</p>
-                        <div class="newsletter__form">
-                            <input type="email" placeholder="your@email." class="newsletter__input" />
-                            <button class="newsletter__btn">Subscribe</button>
-                        </div>
+                <div class="newsletter">
+                    <p class="newsletter__label">Stay informed — new artists added regularly</p>
+                    <div class="newsletter__form">
+                        <input type="email" placeholder="your@email." class="newsletter__input" />
+                        <button class="newsletter__btn">Subscribe</button>
                     </div>
                 </div>
             </div>
-        </footer>
+        </div>
+    </footer>
+
+    <script>
+        document.querySelectorAll('.news-filter').forEach(button => {
+            button.addEventListener('click', () => {
+                document.querySelectorAll('.news-filter').forEach(item => item.classList.remove('active'));
+                button.classList.add('active');
+            });
+        });
+
+        // Video Modal Functionality
+        const modal = document.getElementById('videoModal');
+        const modalVideo = document.getElementById('modalVideo');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalDescription = document.getElementById('modalDescription');
+        const closeBtn = document.querySelector('.modal-close');
+        const heroVideoCard = document.querySelector('.hero-video-card');
+        const newsCards = document.querySelectorAll('.news-card');
+
+        function openModal(videoSrc, title, description) {
+            modalVideo.src = videoSrc || '';
+            modalTitle.textContent = title;
+            modalDescription.textContent = description;
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal() {
+            modal.classList.remove('active');
+            modalVideo.pause();
+            modalVideo.src = '';
+            document.body.style.overflow = 'auto';
+        }
+
+        closeBtn.addEventListener('click', closeModal);
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+
+        // Hero video click
+        heroVideoCard.addEventListener('click', () => {
+            openModal('', 'Featured Interview', 'Featured video will be placed here');
+        });
+
+        // News card clicks (only for videos, not articles)
+        newsCards.forEach(card => {
+            const tagElement = card.querySelector('.card-tag');
+            const isArticle = tagElement && tagElement.textContent.toLowerCase() === 'article';
+            
+            if (!isArticle) {
+                card.addEventListener('click', () => {
+                    const title = card.querySelector('h3').textContent;
+                    const description = card.querySelector('.card-summary').textContent;
+                    const duration = card.querySelector('.card-duration').textContent;
+                    openModal('', title, description + ' - ' + duration);
+                });
+            } else {
+                card.style.cursor = 'default';
+            }
+        });
+    </script>
 
 </body>
 
