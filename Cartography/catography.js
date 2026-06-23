@@ -505,8 +505,9 @@ fetch('./ne_110m_admin_0_countries.geojson').then(res => res.json()).then(countr
     Promise.all([
         fetch('./countryMatcher.json').then(r => r.json()).then(cfg => { matcherConfig = cfg; }),
         fetch('./data.json').then(r => r.json()).catch(() => []),
-        fetch('./artists.json').then(r => r.json()).catch(() => [])
-    ]).then(([_, items, artistsData]) => {
+        fetch('./artists.json').then(r => r.json()).catch(() => []),
+        fetch('./major_cities.json').then(r => r.json()).catch(() => ({ cities: [] }))
+    ]).then(([_, items, artistsData, citiesData]) => {
         rawItems = items;
         rawArtistsData = artistsData;
 
@@ -585,16 +586,57 @@ fetch('./ne_110m_admin_0_countries.geojson').then(res => res.json()).then(countr
             countryToCentroid[cname] = { lat: sumLat / pts.length, lng: sumLng / pts.length };
         });
 
+        // Build city coordinates lookup from major_cities.json
+        const cityCoords = {};
+        (citiesData.cities || []).forEach(city => {
+            cityCoords[city.name.toLowerCase()] = { lat: city.lat, lng: city.lng };
+        });
+
+        // French (and variant) city name aliases to lowercase English names in major_cities.json
+        const frenchCityAliases = {
+            'londres': 'london', 'bruxelles': 'brussels', 'moscou': 'moscow',
+            'vienne': 'vienna', 'varsovie': 'warsaw', 'lisbonne': 'lisbon',
+            'athènes': 'athens', 'athenes': 'athens', 'copenhague': 'copenhagen',
+            'pékin': 'beijing', 'pekin': 'beijing', 'tokio': 'tokyo',
+            'djakarta': 'jakarta', 'calcutta': 'kolkata', 'bombay': 'mumbai',
+            'rangoun': 'yangon', 'hanoï': 'hanoi', 'hanoi': 'hanoi',
+            'téhéran': 'tehran', 'tehran': 'tehran', 'bakou': 'baku',
+            'erevan': 'yerevan', 'beyrouth': 'beirut', 'damas': 'damascus',
+            'bagdad': 'baghdad', 'singapour': 'singapore', 'dacca': 'dhaka',
+            'addis-abeba': 'addis ababa', 'addis abeba': 'addis ababa',
+            'alger': 'algiers', 'le cap': 'cape town', 'mexico': 'mexico city',
+            'sao paulo': 'são paulo', 'montréal': 'montreal', 'dubaï': 'dubai',
+            'séoul': 'seoul', 'manille': 'manila', 'manilla': 'manila',
+            'new york': 'new york', 'los angeles': 'los angeles'
+        };
+
+        function parseCityFromLives(livesStr) {
+            if (!livesStr || !livesStr.trim()) return null;
+            // Match the first "in CITY (" or "in CITY" segment
+            const m = livesStr.match(/\bin\s+([^,(]+?)(?:\s*\(|\s*$)/i);
+            if (!m) return null;
+            return m[1].trim().replace(/\s+since\s+\d.*/i, '').trim() || null;
+        }
+
         // Build arc data per artist: name → [{startLat,startLng,endLat,endLng}]
         const artistArcMap = new Map();
         artistsData.forEach(entry => {
             const nat = (entry['Nationality'] || '').toLowerCase().trim();
             const birthCountry = englishNationalityToCountry[nat];
-            const currentCountry = parseCurrentCountry(entry['Lives / Works'] || '');
+            const livesStr = entry['Lives / Works'] || '';
+            const currentCountry = parseCurrentCountry(livesStr);
             if (!birthCountry || !currentCountry || birthCountry === currentCountry) return;
             const start = countryToCentroid[birthCountry];
-            const end = countryToCentroid[currentCountry];
-            if (!start || !end) return;
+            if (!start) return;
+            // Use city coordinates if available, else fall back to country centroid
+            let end = null;
+            const rawCity = parseCityFromLives(livesStr);
+            if (rawCity) {
+                const key = rawCity.toLowerCase();
+                end = cityCoords[frenchCityAliases[key] || key];
+            }
+            if (!end) end = countryToCentroid[currentCountry];
+            if (!end) return;
             const artistName = (entry['Artist'] || '').trim();
             if (!artistArcMap.has(artistName)) artistArcMap.set(artistName, []);
             artistArcMap.get(artistName).push({ startLat: start.lat, startLng: start.lng, endLat: end.lat, endLng: end.lng });
