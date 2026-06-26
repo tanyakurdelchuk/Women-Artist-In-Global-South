@@ -251,15 +251,15 @@ fetch('./ne_110m_admin_0_countries.geojson').then(res => res.json()).then(countr
     function buildCountryStats(items) {
         const map = new Map();
         items.forEach(item => {
-            const nat = (item['Nationalité'] || '').toLowerCase().trim();
-            const country = mapNationalityToCountry(nat);
+            const nat = (item['Nationalité'] || item['Nationality'] || '').toLowerCase().trim();
+            const country = mapNationalityToCountry(nat) || englishNationalityToCountry[nat];
             if (!country) return;
             if (!map.has(country)) {
                 map.set(country, { artists: new Set(), pieces: 0 });
             }
             const entry = map.get(country);
             const authors =
-                (item['Auteur(s)'] || item['Tous les auteur(s) des liées'] || '')
+                (item['Auteur(s)'] || item['Tous les auteur(s) des liées'] || item['Artist'] || '')
                     .split(',')
                     .map(s => s.trim())
                     .filter(Boolean);
@@ -294,6 +294,12 @@ fetch('./ne_110m_admin_0_countries.geojson').then(res => res.json()).then(countr
         </div>
         <div class="info-card-body">
             <p class="info-card-hint">Hover a country</p>
+        </div>
+        <div class="info-card-journey-section">
+            <label class="journey-checkbox-label">
+                <input type="checkbox" id="countryJourneyCheckbox" disabled />
+                <span>All Artist Journeys</span>
+            </label>
         </div>
         <div class="info-card-divider"></div>
         <div class="info-card-filters-section">
@@ -340,6 +346,43 @@ fetch('./ne_110m_admin_0_countries.geojson').then(res => res.json()).then(countr
 
     let currentCountryDisplayName = '';
     let currentArtistName = '';
+    let currentInfoCountryName = null;
+    let artistArcMap = new Map();
+
+    function getCountryArcs(countryName) {
+        if (!countryName) return [];
+        const countryArtists = artistsByCountry[countryName] || [];
+        const arcs = [];
+        countryArtists.forEach(artist => {
+            const artistArcs = artistArcMap.get(artist.name) || [];
+            artistArcs.forEach(arc => arcs.push(arc));
+        });
+        return arcs;
+    }
+
+    function refreshJourneyArcs() {
+        const allJourneysCheckbox = document.getElementById('countryJourneyCheckbox');
+        const individualJourneyCheckbox = document.getElementById('journeyCheckbox');
+
+        if (allJourneysCheckbox && allJourneysCheckbox.checked && currentInfoCountryName) {
+            Globe.arcsData(getCountryArcs(currentInfoCountryName));
+            return;
+        }
+
+        if (individualJourneyCheckbox && individualJourneyCheckbox.checked) {
+            Globe.arcsData(artistArcMap.get(currentArtistName) || []);
+            return;
+        }
+
+        Globe.arcsData([]);
+    }
+
+    const countryJourneyCheckbox = document.getElementById('countryJourneyCheckbox');
+    if (countryJourneyCheckbox) {
+        countryJourneyCheckbox.addEventListener('change', () => {
+            refreshJourneyArcs();
+        });
+    }
 
     artistPanel.querySelector('.artist-panel-close').addEventListener('click', () => {
         artistPanel.classList.remove('open', 'profile-open');
@@ -350,7 +393,7 @@ fetch('./ne_110m_admin_0_countries.geojson').then(res => res.json()).then(countr
         currentArtistName = '';
         const cb = document.getElementById('journeyCheckbox');
         if (cb) { cb.checked = false; }
-        Globe.arcsData([]);
+        refreshJourneyArcs();
     });
 
     function parseBirthInfo(birthStr) {
@@ -413,7 +456,7 @@ fetch('./ne_110m_admin_0_countries.geojson').then(res => res.json()).then(countr
         currentArtistName = name;
         const cb = document.getElementById('journeyCheckbox');
         if (cb) { cb.checked = false; }
-        Globe.arcsData([]);
+        refreshJourneyArcs();
 
         artistPanel.classList.add('profile-open');
     }
@@ -465,8 +508,16 @@ fetch('./ne_110m_admin_0_countries.geojson').then(res => res.json()).then(countr
 
     function updateInfoPanel(countryName, stats) {
         const body = info.querySelector('.info-card-body');
+        const allJourneysCheckbox = document.getElementById('countryJourneyCheckbox');
+        currentInfoCountryName = countryName || null;
+
+        if (allJourneysCheckbox) {
+            allJourneysCheckbox.disabled = !countryName;
+        }
+
         if (!countryName) {
             body.innerHTML = '<p class="info-card-hint">Hover a country</p>';
+            refreshJourneyArcs();
             return;
         }
         const displayName = getDisplayName(countryName);
@@ -483,6 +534,8 @@ fetch('./ne_110m_admin_0_countries.geojson').then(res => res.json()).then(countr
                 <p class="info-card-hint">No data</p>
             `;
         }
+
+        refreshJourneyArcs();
     }
 
     // Helper function to get color by artist count
@@ -506,7 +559,7 @@ fetch('./ne_110m_admin_0_countries.geojson').then(res => res.json()).then(countr
         fetch('./countryMatcher.json').then(r => r.json()).then(cfg => { matcherConfig = cfg; }),
         fetch('./data.json').then(r => r.json()).catch(() => []),
         fetch('./artists.json').then(r => r.json()).catch(() => []),
-        fetch('./major_cities.json').then(r => r.json()).catch(() => ({ cities: [] }))
+        fetch('./countries_coo.json').then(r => r.json()).catch(() => ({ countries: [] }))
     ]).then(([_, items, artistsData, citiesData]) => {
         rawItems = items;
         rawArtistsData = artistsData;
@@ -530,6 +583,12 @@ fetch('./ne_110m_admin_0_countries.geojson').then(res => res.json()).then(countr
         const statsMap = buildCountryStats(items);
         // flatten Map to plain object for quick lookup
         statsMap.forEach((v, k) => { countryStats[k] = v; });
+        // Fallback: if data.json had no entries, build stats directly from artists.json
+        if (Object.keys(countryStats).length === 0) {
+            Object.entries(artistsByCountry).forEach(([country, list]) => {
+                countryStats[country] = { artists: list.length, pieces: list.length };
+            });
+        }
         
         // Assign colors to features based on artist counts
         features.forEach(feature => {
@@ -567,6 +626,22 @@ fetch('./ne_110m_admin_0_countries.geojson').then(res => res.json()).then(countr
             seen.add(key);
             return true;
         });
+        // Fallback to artists.json when data.json is unavailable
+        if (artists.length === 0 && artistsData.length > 0) {
+            artists = artistsData.map(entry => ({
+                name: normalizeText(entry['Artist']),
+                nationality: normalizeText(entry['Nationality']),
+                place: normalizeText(entry['Lives / Works']),
+                date: normalizeText(entry['Birth / death']),
+                medium: '',
+                source: entry
+            })).filter(a => {
+                const key = (a.name || '').toLowerCase().trim();
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return !!key;
+            });
+        }
         lastFilteredArtists = artists;
         initFilterEventListeners();
 
@@ -586,11 +661,30 @@ fetch('./ne_110m_admin_0_countries.geojson').then(res => res.json()).then(countr
             countryToCentroid[cname] = { lat: sumLat / pts.length, lng: sumLng / pts.length };
         });
 
-        // Build city coordinates lookup from major_cities.json
+        // Build city coordinates lookup from countries_coo.json (by capital name)
         const cityCoords = {};
-        (citiesData.cities || []).forEach(city => {
-            cityCoords[city.name.toLowerCase()] = { lat: city.lat, lng: city.lng };
+        (citiesData.countries || []).forEach(city => {
+            cityCoords[city.capital.toLowerCase()] = { lat: city.lat, lng: city.lng };
         });
+
+        // Build country-level coordinates from countries_coo.json (by country name)
+        const countryToCoords = {};
+        (citiesData.countries || []).forEach(c => {
+            countryToCoords[c.country.toLowerCase()] = { lat: c.lat, lng: c.lng };
+        });
+        // Bridge mismatches between parseCurrentCountry output and countries_coo.json names
+        const livesCountryAliases = {
+            'united states of america': 'united states west',
+            'united republic of tanzania': 'tanzania',
+            'republic of serbia': 'serbia',
+            'democratic republic of the congo': 'congo (dr)',
+            'republic of the congo': 'congo (republic)',
+            'ivory coast': 'ghana',
+            'northern cyprus': 'cyprus',
+            'somaliland': 'somalia',
+            'east timor': 'timor-leste',
+            'swaziland': 'eswatini',
+        };
 
         // French (and variant) city name aliases to lowercase English names in major_cities.json
         const frenchCityAliases = {
@@ -619,7 +713,7 @@ fetch('./ne_110m_admin_0_countries.geojson').then(res => res.json()).then(countr
         }
 
         // Build arc data per artist: name → [{startLat,startLng,endLat,endLng}]
-        const artistArcMap = new Map();
+        artistArcMap = new Map();
         artistsData.forEach(entry => {
             const nat = (entry['Nationality'] || '').toLowerCase().trim();
             const birthCountry = englishNationalityToCountry[nat];
@@ -628,12 +722,16 @@ fetch('./ne_110m_admin_0_countries.geojson').then(res => res.json()).then(countr
             if (!birthCountry || !currentCountry || birthCountry === currentCountry) return;
             const start = countryToCentroid[birthCountry];
             if (!start) return;
-            // Use city coordinates if available, else fall back to country centroid
+            // Use city coords if available, then country coords from countries_coo.json, then GeoJSON centroid
             let end = null;
             const rawCity = parseCityFromLives(livesStr);
             if (rawCity) {
                 const key = rawCity.toLowerCase();
                 end = cityCoords[frenchCityAliases[key] || key];
+            }
+            if (!end && currentCountry) {
+                const ckey = currentCountry.toLowerCase();
+                end = countryToCoords[livesCountryAliases[ckey] || ckey];
             }
             if (!end) end = countryToCentroid[currentCountry];
             if (!end) return;
@@ -649,7 +747,7 @@ fetch('./ne_110m_admin_0_countries.geojson').then(res => res.json()).then(countr
             .arcStartLng(d => d.startLng)
             .arcEndLat(d => d.endLat)
             .arcEndLng(d => d.endLng)
-            .arcColor(() => ['rgba(141,211,199,0)', 'rgba(141,211,199,0.9)', 'rgba(141,211,199,0)'])
+            .arcColor(() => ['rgba(141,211,199,0)', '#9181f9', 'rgba(141,211,199,0)'])
             .arcAltitude(0.25)
             .arcStroke(0.5)
             .arcDashLength(0.35)
@@ -659,9 +757,8 @@ fetch('./ne_110m_admin_0_countries.geojson').then(res => res.json()).then(countr
         // Journey checkbox toggle — reacts to whichever artist is currently shown
         const journeyCheckbox = document.getElementById('journeyCheckbox');
         if (journeyCheckbox) {
-            journeyCheckbox.addEventListener('change', e => {
-                const arcs = e.target.checked ? (artistArcMap.get(currentArtistName) || []) : [];
-                Globe.arcsData(arcs);
+            journeyCheckbox.addEventListener('change', () => {
+                refreshJourneyArcs();
             });
         }
     }).catch(() => { /* silently ignore if not available */ });
@@ -770,7 +867,7 @@ fetch('./ne_110m_admin_0_countries.geojson').then(res => res.json()).then(countr
 
     function onMouseMove(event) {
         mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        mouse.y = -((event.clientY - CANVAS_TOP) / (window.innerHeight - CANVAS_TOP)) * 2 + 1;
         raycaster.setFromCamera(mouse, camera);
         
         const intersects = raycaster.intersectObject(Globe, true);
@@ -807,13 +904,13 @@ fetch('./ne_110m_admin_0_countries.geojson').then(res => res.json()).then(countr
             features[hoveredHexIndex].properties._color = originalColors.get(hoveredHexIndex);
             hoveredHexIndex = null;
             Globe.hexPolygonsData(features);
-            updateInfoPanel(null, null); // reset info panel
         }
     }
 
     // Setup renderer
+    const CANVAS_TOP = 75; // matches margin-top on #globeViz canvas in CSS
     const renderer = new THREE.WebGLRenderer();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(window.innerWidth, window.innerHeight - CANVAS_TOP);
     renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
     document.getElementById('globeViz').appendChild(renderer.domElement);
 
@@ -830,7 +927,7 @@ fetch('./ne_110m_admin_0_countries.geojson').then(res => res.json()).then(countr
             }
         }
         mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        mouse.y = -((event.clientY - CANVAS_TOP) / (window.innerHeight - CANVAS_TOP)) * 2 + 1;
         raycaster.setFromCamera(mouse, camera);
         const intersects = raycaster.intersectObject(Globe, true);
         if (intersects.length > 0) {
@@ -890,7 +987,7 @@ fetch('./ne_110m_admin_0_countries.geojson').then(res => res.json()).then(countr
 
     // Setup camera
     const camera = new THREE.PerspectiveCamera();
-    camera.aspect = window.innerWidth/ window.innerHeight;
+    camera.aspect = window.innerWidth / (window.innerHeight - CANVAS_TOP);
     camera.updateProjectionMatrix();
     camera.position.z = 300;
 
