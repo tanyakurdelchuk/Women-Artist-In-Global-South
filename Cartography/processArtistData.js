@@ -34,7 +34,7 @@ function getColorByCount(count) {
 async function processArtistData() {
     try {
         // Load data files
-        const dataResponse = await fetch('./data.json');
+        const dataResponse = await fetch('./Artworks.json');
         const data = await dataResponse.json();
         
         const matcherResponse = await fetch('./countryMatcher.json');

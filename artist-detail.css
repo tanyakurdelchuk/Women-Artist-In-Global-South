@@ -422,6 +422,10 @@ body {
   justify-content: flex-start;
 }
 
+.back-section--top {
+  margin-top: 70px;
+}
+
 .back-link {
   display: inline-flex;
   align-items: center;

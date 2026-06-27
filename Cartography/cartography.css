@@ -338,8 +338,23 @@ body::-webkit-scrollbar {
     color: #edf8d1;
     cursor: pointer;
     border-bottom: 1px solid rgba(163,165,255,0.03);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 .suggestion-item:hover { background: rgba(163,165,255,0.04); }
+
+.suggestion-main {
+    color: #edf8d1;
+    font-size: 13px;
+    line-height: 1.2;
+}
+
+.suggestion-meta {
+    color: rgba(148, 180, 208, 0.9);
+    font-size: 11px;
+    line-height: 1.2;
+}
 
 .search-section {
     padding: 1rem 1.5rem;

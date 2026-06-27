@@ -28,6 +28,7 @@
   const modalArtworkLines = document.getElementById('modalArtworkLines');
   const modalArtworkAcquisition = document.getElementById('modalArtworkAcquisition');
   const modalArtworkCollection = document.getElementById('modalArtworkCollection');
+  const backToCartographyLink = document.getElementById('backToCartographyLink');
 
   let currentArtworks = [];
   let currentArtistProfile = null;
@@ -261,16 +262,19 @@
       fetch('./assets/Artworks.json').then(res => res.json())
     ])
       .then(([artistsData, artworksData]) => {
-        // Find the artist by name (case-insensitive)
-        const searchName = (artistName || '').toString().trim().toLowerCase();
-        const artistData = artistsData.find(item => {
-          const full = (item['Artist'] || '').toString().trim();
-          if (!full) return false;
-          if (full.toLowerCase() === searchName) return true;
-          const parts = full.split(',').map(p => p.trim().toLowerCase());
-          if (parts.includes(searchName)) return true;
-          return false;
+        // Find the artist by name
+        const searchName = normalizeName(artistName);
+
+        let artistData = artistsData.find(item => {
+          return normalizeName(item['Artist']) === searchName;
         });
+
+        if (!artistData) {
+          artistData = artistsData.find(item => {
+            const parts = splitArtistNames(item['Artist']);
+            return parts.includes(searchName);
+          });
+        }
 
         if (!artistData) {
           artistNameEl.textContent = 'Artist not found';
@@ -279,7 +283,7 @@
         }
 
         // Populate the page with artist data
-        const name = (artistData['Artist'] || 'Unknown').split(',')[0].trim();
+        const name = (artistData['Artist'] || 'Unknown').trim();
         const date = (artistData['Birth / death'] || 'Unknown').trim();
         const place = (artistData['Lives / Works'] || 'Unknown').trim();
         const nationality = (artistData['Nationality'] || 'Unknown').trim();
@@ -299,7 +303,10 @@
         artistNameEl.textContent = name;
         artistDateEl.textContent = date;
         artistPlaceEl.textContent = place;
-        artistBioEl.textContent = description;
+        artistBioEl.innerHTML = description
+          .split(/\n\s*\n/)
+          .map(paragraph => `<p>${paragraph.trim()}</p>`)
+          .join('');
         updateBioToggleVisibility();
 
         // Update image
@@ -336,6 +343,18 @@
 
   // Initialize
   loadArtistData();
+
+  if (backToCartographyLink) {
+    backToCartographyLink.addEventListener('click', (event) => {
+      event.preventDefault();
+      // Prefer browser history so previous cartography state is restored.
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        window.location.href = 'cartography.html';
+      }
+    });
+  }
 
   if (artworksGrid) {
     artworksGrid.addEventListener('click', (event) => {

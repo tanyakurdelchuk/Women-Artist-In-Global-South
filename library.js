@@ -156,8 +156,7 @@ function handleProfileClick(e) {
     const el = e.currentTarget;
     const card = el.closest('.artist-card');
     if (!card) return;
-    const nameEl = card.querySelector('.artist-name');
-    const name = nameEl ? nameEl.innerText : 'Unknown';
+    const name = card.dataset.name || 'Unknown';
     const id = (card.getAttribute('data-id') || '').trim();
     saveLibraryState();
     const params = new URLSearchParams({ name });

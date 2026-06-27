@@ -3,6 +3,12 @@ import * as THREE from 'https://esm.sh/three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js?external=three';
 import { BackSide, BufferAttribute, Color, Mesh, ShaderMaterial } from 'https://esm.sh/three';
 
+const assetUrl = (path) => new URL(path, import.meta.url);
+const siteUrl = (path) => new URL(`../${path}`, import.meta.url);
+const sharedArtistsUrl = assetUrl('../assets/Artists.json');
+const sharedArtworksUrl = assetUrl('../assets/Artworks.json');
+const CARTOGRAPHY_STATE_KEY = 'cartographyStateV1';
+
 const normalOpacityCountries = [
 // Latin America
 "Brazil", "Argentina", "Mexico", "Chile", "Colombia", "Venezuela","Belize",
@@ -160,7 +166,7 @@ function parseCurrentCountry(livesStr) {
     return null;
 }
 
-fetch('./ne_110m_admin_0_countries.geojson').then(res => res.json()).then(countries =>
+fetch(assetUrl('./ne_110m_admin_0_countries.geojson')).then(res => res.json()).then(countries =>
 {
     // Extract features from GeoJSON
     const features = countries.features;
@@ -248,25 +254,72 @@ fetch('./ne_110m_admin_0_countries.geojson').then(res => res.json()).then(countr
         return null;
     }
 
-    function buildCountryStats(items) {
+    const featureCountryNames = new Set(
+        features
+            .map(f => findCountryNameFromFeatureProps(f.properties))
+            .filter(Boolean)
+    );
+
+    function mapAnyNationalityToCountry(natRaw) {
+        const nat = (natRaw || '').toLowerCase().trim();
+        if (!nat) return null;
+
+        const mapped =
+            mapNationalityToCountry(nat) ||
+            englishNationalityToCountry[nat] ||
+            countryNameAliases[nat];
+        if (mapped) return mapped;
+
+        // If nationality already looks like a country name, keep it when it exists in GeoJSON.
+        for (const country of featureCountryNames) {
+            if (country.toLowerCase() === nat) return country;
+        }
+        return null;
+    }
+
+    function buildCountryStats(artistsData, artworksData) {
+        const map = new Map();
+
+        artistsData.forEach(item => {
+            const nat = item['Nationality'] || item['Nationalité'] || '';
+            const country = mapAnyNationalityToCountry(nat);
+            if (!country) return;
+            if (!map.has(country)) map.set(country, { artists: new Set(), pieces: 0 });
+
+            const artistName = (item['Artist'] || item['Auteur(s)'] || '').trim();
+            if (artistName) map.get(country).artists.add(artistName);
+        });
+
+        artworksData.forEach(item => {
+            const nat = item['Nationality'] || item['Nationalité'] || '';
+            const country = mapAnyNationalityToCountry(nat);
+            if (!country) return;
+            if (!map.has(country)) map.set(country, { artists: new Set(), pieces: 0 });
+            map.get(country).pieces += 1;
+        });
+
+        const result = new Map();
+        map.forEach((v, k) => result.set(k, { artists: v.artists.size, pieces: v.pieces }));
+        return result;
+    }
+
+    function buildCountryStatsFromArtworks(items) {
         const map = new Map();
         items.forEach(item => {
-            const nat = (item['Nationalité'] || item['Nationality'] || '').toLowerCase().trim();
-            const country = mapNationalityToCountry(nat) || englishNationalityToCountry[nat];
+            const nat = item['Nationality'] || item['Nationalité'] || '';
+            const country = mapAnyNationalityToCountry(nat);
             if (!country) return;
-            if (!map.has(country)) {
-                map.set(country, { artists: new Set(), pieces: 0 });
-            }
-            const entry = map.get(country);
+            if (!map.has(country)) map.set(country, { artists: new Set(), pieces: 0 });
+
             const authors =
-                (item['Auteur(s)'] || item['Tous les auteur(s) des liées'] || item['Artist'] || '')
+                (item['Author(s)'] || item['All the authors of the links'] || item['Auteur(s)'] || item['Tous les auteur(s) des liées'] || '')
                     .split(',')
                     .map(s => s.trim())
                     .filter(Boolean);
-            authors.forEach(a => entry.artists.add(a));
-            entry.pieces += 1;
+            authors.forEach(a => map.get(country).artists.add(a));
+            map.get(country).pieces += 1;
         });
-        // convert Sets to counts
+
         const result = new Map();
         map.forEach((v, k) => result.set(k, { artists: v.artists.size, pieces: v.pieces }));
         return result;
@@ -335,7 +388,7 @@ fetch('./ne_110m_admin_0_countries.geojson').then(res => res.json()).then(countr
                     </label>
                 </div>
                 <div class="artist-panel-profile-footer">
-                    <a class="artist-panel-profile-btn" href="#" target="_blank" rel="noopener">
+                    <a class="artist-panel-profile-btn" href="#">
                         View Profile &#x2192;
                     </a>
                 </div>
@@ -348,6 +401,38 @@ fetch('./ne_110m_admin_0_countries.geojson').then(res => res.json()).then(countr
     let currentArtistName = '';
     let currentInfoCountryName = null;
     let artistArcMap = new Map();
+    let pendingRestoreState = null;
+
+    try {
+        const rawState = sessionStorage.getItem(CARTOGRAPHY_STATE_KEY);
+        pendingRestoreState = rawState ? JSON.parse(rawState) : null;
+    } catch {
+        pendingRestoreState = null;
+    }
+
+    function saveCartographyState() {
+        try {
+            const allJourneysCheckbox = document.getElementById('countryJourneyCheckbox');
+            const journeyCheckbox = document.getElementById('journeyCheckbox');
+            const state = {
+                searchQuery,
+                activeCountryFocus,
+                currentInfoCountryName,
+                currentArtistName,
+                panelOpen: artistPanel.classList.contains('open'),
+                profileOpen: artistPanel.classList.contains('profile-open'),
+                allJourneys: !!(allJourneysCheckbox && allJourneysCheckbox.checked),
+                artistJourney: !!(journeyCheckbox && journeyCheckbox.checked),
+                camera: {
+                    position: { x: camera.position.x, y: camera.position.y, z: camera.position.z },
+                    target: { x: controls.target.x, y: controls.target.y, z: controls.target.z }
+                }
+            };
+            sessionStorage.setItem(CARTOGRAPHY_STATE_KEY, JSON.stringify(state));
+        } catch {
+            // Ignore sessionStorage failures.
+        }
+    }
 
     function getCountryArcs(countryName) {
         if (!countryName) return [];
@@ -381,19 +466,32 @@ fetch('./ne_110m_admin_0_countries.geojson').then(res => res.json()).then(countr
     if (countryJourneyCheckbox) {
         countryJourneyCheckbox.addEventListener('change', () => {
             refreshJourneyArcs();
+            saveCartographyState();
         });
     }
 
     artistPanel.querySelector('.artist-panel-close').addEventListener('click', () => {
         artistPanel.classList.remove('open', 'profile-open');
+        saveCartographyState();
     });
     artistPanel.querySelector('.artist-panel-back').addEventListener('click', () => {
         artistPanel.classList.remove('profile-open');
         artistPanel.querySelector('.artist-panel-title').textContent = currentCountryDisplayName;
         currentArtistName = '';
+        const previousFocus = (artistPanel.dataset.previousCountryFocus || '').trim();
+        const previousQuery = artistPanel.dataset.previousSearchQuery || '';
+        activeCountryFocus = previousFocus || null;
+        searchQuery = previousQuery;
+        const input = document.getElementById('compactSearchInput');
+        if (input) input.value = searchQuery;
+        updateUI();
         const cb = document.getElementById('journeyCheckbox');
         if (cb) { cb.checked = false; }
         refreshJourneyArcs();
+        saveCartographyState();
+    });
+    artistPanel.querySelector('.artist-panel-profile-btn').addEventListener('click', () => {
+        saveCartographyState();
     });
 
     function parseBirthInfo(birthStr) {
@@ -422,13 +520,40 @@ fetch('./ne_110m_admin_0_countries.geojson').then(res => res.json()).then(countr
         return tags;
     }
 
+    function updateArtistJourneyVisibility(artistName) {
+        const journeySection = artistPanel.querySelector('.artist-panel-profile-journey');
+        const journeyCheckbox = document.getElementById('journeyCheckbox');
+        const hasJourney = (artistArcMap.get(artistName) || []).length > 0;
+
+        if (journeySection) {
+            journeySection.style.display = hasJourney ? '' : 'none';
+        }
+
+        if (journeyCheckbox) {
+            journeyCheckbox.checked = false;
+            journeyCheckbox.disabled = !hasJourney;
+        }
+    }
+
     function showArtistProfile(artist) {
         const { name, img, lives, nationality } = artist;
+        artistPanel.dataset.previousCountryFocus = activeCountryFocus || '';
+        artistPanel.dataset.previousSearchQuery = searchQuery || '';
         const encodedImg = img ? img.split('/').map(encodeURIComponent).join('/') : '';
-
-        artistPanel.querySelector('.artist-panel-profile-img-area').innerHTML = encodedImg
-            ? `<img class="artist-panel-profile-photo" src="${encodedImg}" alt="${name}" />`
-            : `<div class="artist-panel-profile-no-photo">No photo</div>`;
+        const profileImgArea = artistPanel.querySelector('.artist-panel-profile-img-area');
+        profileImgArea.innerHTML = '';
+        if (encodedImg) {
+            const profileImg = document.createElement('img');
+            profileImg.className = 'artist-panel-profile-photo';
+            profileImg.src = encodedImg;
+            profileImg.alt = name;
+            profileImg.addEventListener('error', () => {
+                profileImgArea.innerHTML = '<div class="artist-panel-profile-no-photo">No image</div>';
+            });
+            profileImgArea.appendChild(profileImg);
+        } else {
+            profileImgArea.innerHTML = '<div class="artist-panel-profile-no-photo">No image</div>';
+        }
 
         artistPanel.querySelector('.artist-panel-title').textContent = name;
         artistPanel.querySelector('.artist-panel-profile-name').textContent = name;
@@ -446,19 +571,26 @@ fetch('./ne_110m_admin_0_countries.geojson').then(res => res.json()).then(countr
         locTags.innerHTML = parseLocationTags(lives || '')
             .map(l => `<span class="artist-panel-profile-tag location">${l}</span>`).join('');
 
-        artistPanel.querySelector('.artist-panel-profile-btn').href =
-            `library.html?artist=${encodeURIComponent(name)}`;
+        const artistProfileUrl = siteUrl('artist-detail.html');
+        artistProfileUrl.searchParams.set('name', name);
+        const profileBtn = artistPanel.querySelector('.artist-panel-profile-btn');
+        profileBtn.href = artistProfileUrl.href;
 
         // Scroll profile view to top
         artistPanel.querySelector('.artist-panel-profile-view').scrollTop = 0;
 
         // Update current artist, reset checkbox and arcs
         currentArtistName = name;
-        const cb = document.getElementById('journeyCheckbox');
-        if (cb) { cb.checked = false; }
+        activeCountryFocus = resolveCountryFocus(artist.country || currentInfoCountryName || '');
+        updateGlobeColors(lastFilteredArtists.length ? lastFilteredArtists : artists);
+        if (activeCountryFocus) {
+            updateInfoPanel(activeCountryFocus, countryStats);
+        }
+        updateArtistJourneyVisibility(name);
         refreshJourneyArcs();
 
         artistPanel.classList.add('profile-open');
+        saveCartographyState();
     }
 
     function openArtistPanel(countryName) {
@@ -502,8 +634,18 @@ fetch('./ne_110m_admin_0_countries.geojson').then(res => res.json()).then(countr
                     showArtistProfile(countryArtists[idx]);
                 });
             });
+
+            // Replace broken image URLs with a clean placeholder.
+            grid.querySelectorAll('.artist-panel-img').forEach(imgEl => {
+                imgEl.addEventListener('error', () => {
+                    const wrap = imgEl.closest('.artist-panel-img-wrap');
+                    if (!wrap) return;
+                    wrap.innerHTML = '<div class="artist-panel-no-img">No image</div>';
+                });
+            });
         }
         artistPanel.classList.add('open');
+        saveCartographyState();
     }
 
     function updateInfoPanel(countryName, stats) {
@@ -556,11 +698,11 @@ fetch('./ne_110m_admin_0_countries.geojson').then(res => res.json()).then(countr
     let rawArtistsData = [];
     let artistsByCountry = {};
     Promise.all([
-        fetch('./countryMatcher.json').then(r => r.json()).then(cfg => { matcherConfig = cfg; }),
-        fetch('./data.json').then(r => r.json()).catch(() => []),
-        fetch('./artists.json').then(r => r.json()).catch(() => []),
-        fetch('./countries_coo.json').then(r => r.json()).catch(() => ({ countries: [] }))
-    ]).then(([_, items, artistsData, citiesData]) => {
+        fetch(assetUrl('./countryMatcher.json')).then(r => r.json()).then(cfg => { matcherConfig = cfg; }),
+        fetch(sharedArtistsUrl).then(r => r.json()).catch(() => []),
+        fetch(sharedArtworksUrl).then(r => r.json()).catch(() => []),
+        fetch(assetUrl('./countries_coo.json')).then(r => r.json()).catch(() => ({ countries: [] }))
+    ]).then(([_, artistsData, items, citiesData]) => {
         rawItems = items;
         rawArtistsData = artistsData;
 
@@ -571,6 +713,7 @@ fetch('./ne_110m_admin_0_countries.geojson').then(res => res.json()).then(countr
             if (!country) return;
             if (!artistsByCountry[country]) artistsByCountry[country] = [];
             artistsByCountry[country].push({
+                country,
                 name: (entry['Artist'] || '').trim(),
                 img: (entry['Image'] || '').trim(),
                 lives: (entry['Lives / Works'] || '').trim(),
@@ -580,10 +723,10 @@ fetch('./ne_110m_admin_0_countries.geojson').then(res => res.json()).then(countr
                 video: (entry['Video'] || '').trim()
             });
         });
-        const statsMap = buildCountryStats(items);
+        const statsMap = buildCountryStats(artistsData, items);
         // flatten Map to plain object for quick lookup
         statsMap.forEach((v, k) => { countryStats[k] = v; });
-        // Fallback: if data.json had no entries, build stats directly from artists.json
+        // Fallback: if the shared artists dataset had no entries, build stats directly from artists data
         if (Object.keys(countryStats).length === 0) {
             Object.entries(artistsByCountry).forEach(([country, list]) => {
                 countryStats[country] = { artists: list.length, pieces: list.length };
@@ -614,19 +757,20 @@ fetch('./ne_110m_admin_0_countries.geojson').then(res => res.json()).then(countr
         // Populate artists array for filter UI
         const seen = new Set();
         artists = items.map(item => ({
-            name: normalizeText(item['Auteur(s)'] || item['Tous les auteur(s) des liées']),
-            nationality: normalizeText(item['Nationalité']),
-            place: normalizeText(item['Vit / travaille'] || item['Lieu de réalisation'] || item['Naissance / décès']),
-            date: normalizeText(item['Date de création'] || item['Naissance / décès']),
-            medium: normalizeText(item['Domaine, dénomination'] || item['Domaine']),
+            name: normalizeText(item['Author(s)'] || item['All the authors of the links'] || item['Auteur(s)'] || item['Tous les auteur(s) des liées']),
+            nationality: normalizeText(item['Nationality'] || item['Nationalité']),
+            place: normalizeText(item['Lives / Works'] || item['Place of production'] || item['Vit / travaille'] || item['Lieu de réalisation'] || item['Birth / death'] || item['Naissance / décès']),
+            date: normalizeText(item['Date of creation'] || item['Date'] || item['Date de création'] || item['Naissance / décès']),
+            medium: normalizeText(item['Domain, name'] || item['Domaine, dénomination'] || item['Domaine']),
             source: item
         })).filter(a => {
             const key = (a.name || '').toLowerCase().trim();
+            if (!key || key === 'unknown') return false;
             if (seen.has(key)) return false;
             seen.add(key);
             return true;
         });
-        // Fallback to artists.json when data.json is unavailable
+        // Fallback to artists data when primary item list is unavailable
         if (artists.length === 0 && artistsData.length > 0) {
             artists = artistsData.map(entry => ({
                 name: normalizeText(entry['Artist']),
@@ -759,7 +903,46 @@ fetch('./ne_110m_admin_0_countries.geojson').then(res => res.json()).then(countr
         if (journeyCheckbox) {
             journeyCheckbox.addEventListener('change', () => {
                 refreshJourneyArcs();
+                saveCartographyState();
             });
+        }
+
+        if (pendingRestoreState && typeof pendingRestoreState === 'object') {
+            if (typeof pendingRestoreState.searchQuery === 'string') {
+                searchQuery = pendingRestoreState.searchQuery;
+                activeCountryFocus = resolveCountryFocus(pendingRestoreState.activeCountryFocus || searchQuery);
+                const input = document.getElementById('compactSearchInput');
+                if (input) input.value = searchQuery;
+                updateUI();
+            }
+
+            if (pendingRestoreState.camera && pendingRestoreState.camera.position && pendingRestoreState.camera.target) {
+                const p = pendingRestoreState.camera.position;
+                const t = pendingRestoreState.camera.target;
+                if ([p.x, p.y, p.z, t.x, t.y, t.z].every(v => typeof v === 'number')) {
+                    camera.position.set(p.x, p.y, p.z);
+                    controls.target.set(t.x, t.y, t.z);
+                    controls.update();
+                }
+            }
+
+            if (pendingRestoreState.panelOpen && pendingRestoreState.currentInfoCountryName) {
+                openArtistPanel(pendingRestoreState.currentInfoCountryName);
+                if (pendingRestoreState.profileOpen && pendingRestoreState.currentArtistName) {
+                    const list = artistsByCountry[pendingRestoreState.currentInfoCountryName] || [];
+                    const matched = list.find(a => a.name === pendingRestoreState.currentArtistName);
+                    if (matched) showArtistProfile(matched);
+                }
+            }
+
+            const restoreAllJourneys = document.getElementById('countryJourneyCheckbox');
+            if (restoreAllJourneys) restoreAllJourneys.checked = !!pendingRestoreState.allJourneys;
+            const restoreJourney = document.getElementById('journeyCheckbox');
+            if (restoreJourney) restoreJourney.checked = !!pendingRestoreState.artistJourney;
+            refreshJourneyArcs();
+
+            pendingRestoreState = null;
+            saveCartographyState();
         }
     }).catch(() => { /* silently ignore if not available */ });
 
@@ -767,6 +950,14 @@ fetch('./ne_110m_admin_0_countries.geojson').then(res => res.json()).then(countr
     let artists = [];
     let lastFilteredArtists = [];
     let searchQuery = ''
+    let activeCountryFocus = null;
+
+    function resolveCountryFocus(raw) {
+        const query = (raw || '').trim().toLowerCase();
+        if (!query) return null;
+        const match = Object.keys(countryStats).find(c => c.toLowerCase() === query);
+        return match || null;
+    }
 
     function normalizeText(value) {
         if (!value || !value.toString().trim()) return 'Unknown';
@@ -774,13 +965,23 @@ fetch('./ne_110m_admin_0_countries.geojson').then(res => res.json()).then(countr
     }
 
     function updateGlobeColors(filteredArtists) {
-        const statsMap = buildCountryStats(filteredArtists.map(a => a.source));
+        const statsMap = buildCountryStatsFromArtworks(filteredArtists.map(a => a.source));
         const filteredStats = {};
         statsMap.forEach((v, k) => { filteredStats[k] = v; });
         features.forEach((feature, idx) => {
             const countryName = findCountryNameFromFeatureProps(feature.properties);
             if (feature.properties._isNormalOpacity) {
-                if (countryName && filteredStats[countryName]) {
+                if (activeCountryFocus) {
+                    if (countryName === activeCountryFocus) {
+                        const focusedArtists =
+                            (filteredStats[countryName] && filteredStats[countryName].artists) ||
+                            (countryStats[countryName] && countryStats[countryName].artists) ||
+                            0;
+                        feature.properties._color = getColorByCount(focusedArtists);
+                    } else {
+                        feature.properties._color = LOW_OPACITY_COLOR;
+                    }
+                } else if (countryName && filteredStats[countryName]) {
                     feature.properties._color = getColorByCount(filteredStats[countryName].artists);
                 } else {
                     feature.properties._color = palette[0];
@@ -793,17 +994,44 @@ fetch('./ne_110m_admin_0_countries.geojson').then(res => res.json()).then(countr
         Globe.hexPolygonsData(features);
     }
 
-    function getAllKeywords() {
-        const set = new Set();
+    function getSuggestionEntries() {
+        const entries = [];
+        const seenArtists = new Set();
+
         artists.forEach(a => {
-            if (a.name && a.name !== 'Unknown') set.add(a.name);
-            if (a.nationality && a.nationality !== 'Unknown') set.add(a.nationality);
-            if (a.place && a.place !== 'Unknown') set.add(a.place);
-            if (a.medium && a.medium !== 'Unknown') {
-                a.medium.toString().split(',').forEach(m => { if (m && m.trim()) set.add(m.trim()); });
+            const artistName = (a.name || '').trim();
+            const location = (a.place || '').trim();
+
+            if (artistName && artistName !== 'Unknown') {
+                const key = artistName.toLowerCase();
+                if (!seenArtists.has(key)) {
+                    entries.push({ type: 'artist', label: artistName, location: location !== 'Unknown' ? location : '' });
+                    seenArtists.add(key);
+                }
             }
+
         });
-        return Array.from(set);
+
+        Object.keys(countryStats).sort((a, b) => a.localeCompare(b)).forEach(country => {
+            entries.push({ type: 'country', label: country });
+        });
+
+        return entries;
+    }
+
+    function openArtistFromName(artistName) {
+        const target = (artistName || '').trim().toLowerCase();
+        if (!target) return false;
+
+        for (const [country, list] of Object.entries(artistsByCountry)) {
+            const matched = list.find(a => (a.name || '').trim().toLowerCase() === target);
+            if (matched) {
+                openArtistPanel(country);
+                showArtistProfile(matched);
+                return true;
+            }
+        }
+        return false;
     }
 
     function updateSearchSuggestions(query) {
@@ -811,18 +1039,32 @@ fetch('./ne_110m_admin_0_countries.geojson').then(res => res.json()).then(countr
         if (!container) return;
         if (!query || !query.trim()) { container.classList.add('hidden'); container.innerHTML = ''; return; }
         const q = query.toLowerCase();
-        const matches = getAllKeywords().filter(k => k.toLowerCase().startsWith(q)).slice(0, 12);
+        const matches = getSuggestionEntries().filter(e => e.label.toLowerCase().startsWith(q)).slice(0, 12);
         if (!matches.length) { container.classList.add('hidden'); container.innerHTML = ''; return; }
-        container.innerHTML = matches.map(m => `<div class="suggestion-item" data-val="${m.replace(/"/g, '&quot;')}">${m}</div>`).join('');
+        container.innerHTML = matches.map(m => {
+            const safeLabel = m.label.replace(/"/g, '&quot;');
+            const safeLocation = (m.location || '').replace(/"/g, '&quot;');
+            if (m.type === 'artist') {
+                const locationHtml = safeLocation ? `<span class="suggestion-meta">${safeLocation}</span>` : '';
+                return `<div class="suggestion-item" data-type="artist" data-val="${safeLabel}"><span class="suggestion-main">${m.label}</span>${locationHtml}</div>`;
+            }
+            return `<div class="suggestion-item" data-type="country" data-val="${safeLabel}"><span class="suggestion-main">${m.label}</span></div>`;
+        }).join('');
         container.classList.remove('hidden');
         container.querySelectorAll('.suggestion-item').forEach(item => {
             item.addEventListener('click', () => {
                 const val = item.getAttribute('data-val');
+                const type = item.getAttribute('data-type');
                 const input = document.getElementById('compactSearchInput');
                 if (input) input.value = val;
                 searchQuery = val;
+                activeCountryFocus = type === 'country' ? resolveCountryFocus(val) : null;
                 updateUI();
+                if (type === 'artist') {
+                    openArtistFromName(val);
+                }
                 container.classList.add('hidden');
+                saveCartographyState();
             });
         });
     }
@@ -833,8 +1075,7 @@ fetch('./ne_110m_admin_0_countries.geojson').then(res => res.json()).then(countr
             const q = searchQuery.toLowerCase();
             filtered = filtered.filter(artist =>
                 artist.name.toLowerCase().includes(q) ||
-                artist.nationality.toLowerCase().includes(q) ||
-                artist.place.toLowerCase().includes(q)
+                artist.nationality.toLowerCase().includes(q)
             );
         }
         lastFilteredArtists = filtered;
@@ -844,8 +1085,25 @@ fetch('./ne_110m_admin_0_countries.geojson').then(res => res.json()).then(countr
     function initFilterEventListeners() {
         const input = document.getElementById('compactSearchInput');
         if (input) {
-            input.addEventListener('input', (e) => { searchQuery = e.target.value; updateUI(); updateSearchSuggestions(searchQuery); });
-            input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { searchQuery = input.value; updateUI(); document.getElementById('searchSuggestions')?.classList.add('hidden'); } });
+            input.addEventListener('input', (e) => {
+                searchQuery = e.target.value;
+                activeCountryFocus = null;
+                updateUI();
+                updateSearchSuggestions(searchQuery);
+                saveCartographyState();
+            });
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    searchQuery = input.value;
+                    activeCountryFocus = resolveCountryFocus(input.value);
+                    updateUI();
+                    if (!activeCountryFocus) {
+                        openArtistFromName(input.value);
+                    }
+                    document.getElementById('searchSuggestions')?.classList.add('hidden');
+                    saveCartographyState();
+                }
+            });
         }
         document.addEventListener('click', (ev) => {
             const wrapper = document.querySelector('.compact-search-wrapper');
@@ -1007,6 +1265,8 @@ fetch('./ne_110m_admin_0_countries.geojson').then(res => res.json()).then(countr
     camera.position.set(0, 0, 300);
     controls.target.set(0, 0, 0);
     controls.update();
+    controls.addEventListener('change', saveCartographyState);
+    window.addEventListener('beforeunload', saveCartographyState);
 
     // Kick-off renderer
     (function animate() { // IIFE

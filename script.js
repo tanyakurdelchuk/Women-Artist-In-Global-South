@@ -78,6 +78,71 @@ function initGlobe() {
             Globe.scale.set(2.0, 2.0, 2.0);
             const globeFeatures = countries.features;
 
+            // Countries highlighted in sections 2-4 (Global South focus)
+            const highlightedCountries = new Set([
+                // Latin America
+                "Brazil", "Argentina", "Mexico", "Chile", "Colombia", "Venezuela", "Belize",
+                "Peru", "Uruguay", "Ecuador", "Haiti", "Dominican Republic",
+                "Panama", "Bolivia", "Costa Rica", "El Salvador", "The Bahamas", "Bahamas",
+                "Jamaica", "Paraguay", "Guatemala", "Cuba", "Honduras", "Nicaragua", "Suriname", "Guyana", "Puerto Rico", "Trinidad and Tobago",
+                // Africa
+                "Algeria", "South Africa", "Morocco", "Nigeria", "Tunisia", "Mali", "Guinea", "Western Sahara",
+                "Ivory Coast", "Cote d'Ivoire", "Côte d'Ivoire", "Democratic Republic of the Congo", "Dem. Rep. Congo", "Cameroon",
+                "Benin", "Senegal", "Togo", "Egypt", "Mauritius", "Burkina Faso",
+                "Angola", "Ghana", "Mozambique", "Madagascar", "Liberia", "Zimbabwe",
+                "Ethiopia", "Rwanda", "Botswana", "Gabon", "Malawi", "Namibia",
+                "Uganda", "Kenya", "Somaliland", "Somalia", "United Republic of Tanzania", "Tanzania", "Niger", "Sudan", "South Sudan", "Zambia", "Libya", "Sierra Leone", "Republic of the Congo", "Congo", "Chad", "Central African Republic", "Eritrea", "Djibouti", "Mauritania", "Lesotho", "Swaziland", "Eswatini", "Burundi", "Guinea-Bissau", "Gambia",
+                // Asia
+                "Iran", "Palestine", "Israel", "India", "Indonesia", "Thailand", "Vietnam", "Laos", "Myanmar", "Syria", "Oman", "United Arab Emirates", "Qatar",
+                "Jordan", "Philippines", "Armenia", "Iraq", "Pakistan",
+                "Kuwait", "Saudi Arabia", "Cambodia", "Malaysia", "Bangladesh",
+                "Nepal", "Afghanistan", "Turkmenistan", "Sri Lanka",
+                "Yemen", "China", "Mongolia", "Taiwan", "Singapore", "Brunei", "Bhutan", "North Korea",
+                // Oceania
+                "Papua New Guinea", "Fiji", "Samoa", "Tonga", "Vanuatu", "Solomon Islands", "East Timor", "Timor-Leste",
+                // Europe
+                "Croatia", "Republic of Serbia", "Serbia", "Bosnia and Herzegovina", "Northern Cyprus", "Cyprus"
+            ]);
+
+            const highlightColor = "#a3a5ff";
+            const dimColor = "#2d2d44";
+
+            function normalizeCountryName(name) {
+                return String(name || "")
+                    .toLowerCase()
+                    .replace(/[.]/g, "")
+                    .replace(/\s+/g, " ")
+                    .trim();
+            }
+
+            const normalizedHighlightedCountries = new Set(
+                Array.from(highlightedCountries, normalizeCountryName)
+            );
+
+            function isHighlightedCountry(feature) {
+                const props = feature?.properties || {};
+                const candidateNames = [
+                    props.ADMIN,
+                    props.NAME,
+                    props.NAME_LONG,
+                    props.SOVEREIGNT,
+                    props.GEOUNIT,
+                    props.SUBUNIT
+                ];
+
+                return candidateNames.some(name => normalizedHighlightedCountries.has(normalizeCountryName(name)));
+            }
+
+            function applySection2to4Highlight() {
+                Globe.hexPolygonColor(d => (isHighlightedCountry(d) ? highlightColor : dimColor));
+                Globe.hexPolygonsData(globeFeatures);
+            }
+
+            function resetDefaultHexColor() {
+                Globe.hexPolygonColor(() => "#A3A5FF");
+                Globe.hexPolygonsData(globeFeatures);
+            }
+
             // SECTION ENTRANCES
             const sidebarSections = [2, 3, 4, 6, 7, 8, 9, 10];
             sidebarSections.forEach(sectionNumber => {
@@ -203,6 +268,18 @@ function initGlobe() {
                 z: 1.6,
                 duration: 1,
                 ease: "power2.inOut"
+            });
+
+            // Panels 2-4: highlight only selected countries in purple
+            ScrollTrigger.create({
+                trigger: "#section2",
+                start: "top 65%",
+                endTrigger: "#section5",
+                end: "top 65%",
+                onEnter: applySection2to4Highlight,
+                onEnterBack: applySection2to4Highlight,
+                onLeave: resetDefaultHexColor,
+                onLeaveBack: resetDefaultHexColor
             });
             
             // Timeline for sections 4-5 - Keep Earth on right with slight movement

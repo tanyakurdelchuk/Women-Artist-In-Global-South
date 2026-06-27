@@ -1,5 +1,5 @@
 {
-    "description": "Maps French nationalities from data.json to country names in geojson",
+    "description": "Maps French nationalities from Artists.json to country names in geojson",
     "frenchToEnglish": {
         "brésilienne": "Brazil",
         "argentine": "Argentina",
