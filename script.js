@@ -76,38 +76,67 @@ function initGlobe() {
             // Initial Globe position and scale
             Globe.position.set(0, -120, 0);
             Globe.scale.set(2.0, 2.0, 2.0);
-            
-            // SIDEBAR ANIMATIONS 
-            for (let i = 2; i <= 10; i++) {
-                // Create timeline for sidebar entrance
-                const sidebarTL = gsap.timeline({
-                    scrollTrigger: {
-                        trigger: `#section${i}`,
-                        start: "top 80%",
-                        end: "top 30%",
-                        scrub: false,
-                        once: true,
-                        markers: false // Set to true for debugging
-                    }
-                });
-                
-                // Animate sidebar from left
-                sidebarTL.fromTo(`#section${i} .sidebar`,
-                    {
-                        x: -10,
-                        opacity: 0
-                    },
+            const globeFeatures = countries.features;
+
+            // SECTION ENTRANCES
+            const sidebarSections = [2, 3, 4, 6, 7, 8, 9, 10];
+            sidebarSections.forEach(sectionNumber => {
+                const sidebar = document.querySelector(`#section${sectionNumber} .sidebar`);
+                if (!sidebar) return;
+
+                gsap.fromTo(sidebar,
+                    { x: -10, opacity: 0 },
                     {
                         x: 0,
                         opacity: 1,
                         duration: 1,
-                        ease: "power3.out"
+                        ease: "power3.out",
+                        scrollTrigger: {
+                            trigger: `#section${sectionNumber}`,
+                            start: "top 80%",
+                            end: "top 30%",
+                            once: true,
+                            markers: false
+                        }
                     }
                 );
-            }
-            
+            });
+
+            gsap.fromTo("#section5 .researchers-container",
+                { y: 30, opacity: 0 },
+                {
+                    y: 0,
+                    opacity: 1,
+                    duration: 1,
+                    ease: "power3.out",
+                    scrollTrigger: {
+                        trigger: "#section5",
+                        start: "top 80%",
+                        once: true,
+                        markers: false
+                    }
+                }
+            );
+
+            gsap.fromTo("#section5 .researcher-card",
+                { y: 20, opacity: 0 },
+                {
+                    y: 0,
+                    opacity: 1,
+                    duration: 0.85,
+                    ease: "power3.out",
+                    stagger: 0.15,
+                    scrollTrigger: {
+                        trigger: "#section5",
+                        start: "top 80%",
+                        once: true,
+                        markers: false
+                    }
+                }
+            );
+
             // GLOBE SCROLL ANIMATIONS
-            
+
             // Timeline for section 1 (hero) - Earth starts zoomed and lowers, then returns to normal by panel 2
             const section1TL = gsap.timeline({
                 scrollTrigger: {
@@ -176,12 +205,12 @@ function initGlobe() {
                 ease: "power2.inOut"
             });
             
-            // Timeline for sections 4-6 - Keep Earth on right with slight movement
+            // Timeline for sections 4-5 - Keep Earth on right with slight movement
             const sections4to7TL = gsap.timeline({
                 scrollTrigger: {
                     trigger: "#section4",
                     start: "top bottom",
-                    end: "bottom top+=200%",
+                    end: "bottom top+=150%",
                     scrub: 2,
                     markers: false
                 }
@@ -192,7 +221,104 @@ function initGlobe() {
                 duration: 2,
                 ease: "power1.inOut"
             });
-            
+
+            // ---- ARTIST SPOTLIGHT: stop spin and change globe focus by section ----
+            let globeSpinning = true;
+
+            const marinaArcs = [{
+                startLat: 44.82,
+                startLng: 20.46,
+                endLat: 40.71,
+                endLng: -74.01
+            }];
+
+            const mariaArcs = [{
+                startLat: -23.55,
+                startLng: -46.63,
+                endLat: 40.71,
+                endLng: -74.01
+            }];
+
+            Globe
+                .arcsData([])
+                .arcStartLat(d => d.startLat)
+                .arcStartLng(d => d.startLng)
+                .arcEndLat(d => d.endLat)
+                .arcEndLng(d => d.endLng)
+                .arcColor(() => ["rgba(163,165,255,0)", "#41b6c4", "rgba(163,165,255,0)"])
+                .arcAltitude(0.3)
+                .arcStroke(0.6)
+                .arcDashLength(0.35)
+                .arcDashGap(0.15)
+                .arcDashAnimateTime(2500);
+
+            function faceGlobe(lat, lng, duration = 2.5) {
+                const TWO_PI = Math.PI * 2;
+                const targetY = -lng * Math.PI / 180;
+                const targetX = lat * Math.PI / 180;
+                const currentY = Globe.rotation.y;
+                const currentMod = ((currentY % TWO_PI) + TWO_PI) % TWO_PI;
+                const targetMod = ((targetY % TWO_PI) + TWO_PI) % TWO_PI;
+                const delta = ((targetMod - currentMod + TWO_PI + Math.PI) % TWO_PI) - Math.PI;
+
+                gsap.to(Globe.rotation, {
+                    y: currentY + delta,
+                    x: targetX,
+                    duration,
+                    ease: "power2.inOut"
+                });
+            }
+
+            ScrollTrigger.create({
+                trigger: "#section6",
+                start: "top 65%",
+                onEnter: () => {
+                    globeSpinning = false;
+                    faceGlobe(45, -27);
+                    Globe.arcsData(marinaArcs);
+                },
+                onLeaveBack: () => {
+                    globeSpinning = true;
+                    Globe.arcsData([]);
+                    gsap.to(Globe.rotation, { x: 0, duration: 1, ease: "power2.inOut" });
+                }
+            });
+
+            ScrollTrigger.create({
+                trigger: "#section8",
+                start: "top 65%",
+                onEnter: () => {
+                    globeSpinning = false;
+                    faceGlobe(-23.55, -46.63);
+                    Globe.arcsData(mariaArcs);
+                },
+                onLeaveBack: () => {
+                    faceGlobe(45, -27);
+                    Globe.arcsData(marinaArcs);
+                }
+            });
+
+            ScrollTrigger.create({
+                trigger: "#section10",
+                start: "top 65%",
+                onEnter: () => {
+                    globeSpinning = false;
+                    faceGlobe(-14.24, -51.93);
+                    Globe.arcsData([]);
+                    Globe.hexPolygonColor(d => {
+                        const n = d.properties.ADMIN || d.properties.name || "";
+                        return n === "Brazil" ? "#edf8d1" : "#2d2d44";
+                    });
+                    Globe.hexPolygonsData(globeFeatures);
+                },
+                onLeaveBack: () => {
+                    faceGlobe(-23.55, -46.63);
+                    Globe.arcsData(mariaArcs);
+                    Globe.hexPolygonColor(() => "#9181f9");
+                    Globe.hexPolygonsData(globeFeatures);
+                }
+            });
+
             // Timeline for final section - Fade out Earth
             const finalSectionTL = gsap.timeline({
                 scrollTrigger: {
@@ -203,11 +329,29 @@ function initGlobe() {
                     markers: false
                 }
             });
-            
+
             finalSectionTL.to(Globe.material, {
                 opacity: 0,
                 duration: 1,
                 ease: "power2.inOut"
+            });
+
+            ScrollTrigger.create({
+                trigger: "#section11",
+                start: "top 65%",
+                onEnter: () => {
+                    globeSpinning = true;
+                    Globe.hexPolygonColor(() => "#9181f9");
+                    Globe.hexPolygonsData(globeFeatures);
+                },
+                onLeaveBack: () => {
+                    globeSpinning = false;
+                    Globe.hexPolygonColor(d => {
+                        const n = d.properties.ADMIN || d.properties.name || "";
+                        return n === "Brazil" ? "#edf8d1" : "#2d2d44";
+                    });
+                    Globe.hexPolygonsData(globeFeatures);
+                }
             });
             
             // FINAL PANEL ANIMATION
@@ -222,7 +366,7 @@ function initGlobe() {
                     once: true
                 }
             });
-            
+
             // Handle window resize
             function onWindowResize() {
                 camera.aspect = window.innerWidth / window.innerHeight;
@@ -236,7 +380,7 @@ function initGlobe() {
                 requestAnimationFrame(animate);
                 
                 // Slow, continuous rotation
-                Globe.rotation.y += 0.0005;
+                if (globeSpinning) Globe.rotation.y += 0.0005;
                 
                 // Render scene
                 renderer.render(scene, camera);

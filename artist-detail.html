@@ -26,6 +26,14 @@
         <li onclick="location.href='news.html'">News</li>
       </ul>
     </div>
+    <div class="nav-right">
+        <a href="contact.html" class="btn-contact-us">
+            <svg class="hex-icon-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <polygon points="12,2 22,8 22,16 12,22 2,16 2,8" />
+            </svg>
+            CONTACT US
+        </a>
+    </div>
   </nav>
 
   <!-- Back to Library (top) -->
@@ -80,6 +88,40 @@
       </div>
     </div>
   </section>
+
+  <section class="artworks-section" id="artworksSection" hidden>
+    <h2 class="artworks-title">Artworks</h2>
+    <div class="artworks-grid" id="artworksGrid"></div>
+  </section>
+
+  <div class="artwork-modal" id="artworkModal" aria-hidden="true">
+    <div class="artwork-modal__backdrop" id="artworkModalBackdrop"></div>
+    <div class="artwork-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="modalArtworkTitle">
+      <button class="artwork-modal__nav artwork-modal__nav--prev" id="modalPrevBtn" aria-label="Previous artwork">&#10094;</button>
+      <button class="artwork-modal__nav artwork-modal__nav--next" id="modalNextBtn" aria-label="Next artwork">&#10095;</button>
+      <p class="artwork-modal__count" id="modalArtworkCount"></p>
+      <button class="artwork-modal__close" id="modalCloseBtn" aria-label="Close">&times;</button>
+
+      <div class="artwork-modal__layout">
+        <div class="artwork-modal__image-wrap">
+          <img id="modalArtworkImage" src="" alt="Artwork" />
+        </div>
+
+        <div class="artwork-modal__info">
+          <p class="modal-artist" id="modalArtistName"></p>
+          <p class="modal-artist-meta" id="modalArtistMeta"></p>
+
+          <h3 class="modal-title" id="modalArtworkTitle"></h3>
+          <p class="modal-date" id="modalArtworkDate"></p>
+
+          <div class="modal-lines" id="modalArtworkLines"></div>
+
+          <p class="modal-acquisition" id="modalArtworkAcquisition"></p>
+          <p class="modal-collection" id="modalArtworkCollection"></p>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- (back link moved to top) -->
   <footer class="footer">

@@ -18,16 +18,16 @@ const categoryLabels = {
     genre: 'Genre',
     place: 'Lives/Works',
     decade: 'Decade',
-    organisation: 'Organisation'
+    organisation: 'Collection'
 };
 
 const categoryFieldMap = {
-    country: 'Nationalité',
-    medium: 'Domaine, dénomination',
-    genre: 'Mots-clés mouvement',
-    place: 'Vit / travaille',
-    decade: 'Date de création',
-    organisation: 'Collection'
+    country: 'nationality',
+    medium: 'medium',
+    genre: 'genre',
+    place: 'place',
+    decade: 'date',
+    organisation: 'collection'
 };
 
 const selectedFiltersByCategory = {
@@ -47,6 +47,89 @@ function normalizeText(value) {
         return 'Unknown';
     }
     return value.toString().trim();
+}
+
+function normalizeList(value) {
+    if (!value || !value.toString().trim()) return [];
+    return value.toString().split(',').map(item => item.trim()).filter(item => item);
+}
+
+function addValues(set, value) {
+    normalizeList(value).forEach(item => {
+        const normalized = normalizeText(item);
+        if (normalized && normalized !== 'Unknown') set.add(normalized);
+    });
+}
+
+// Save/restore library UI state (page, scroll, search, filters)
+function getSelectedFiltersObject() {
+    const obj = {};
+    Object.keys(selectedFiltersByCategory).forEach(k => {
+        obj[k] = Array.from(selectedFiltersByCategory[k]);
+    });
+    return obj;
+}
+
+function setSelectedFiltersFromObject(obj) {
+    if (!obj) return;
+    Object.keys(selectedFiltersByCategory).forEach(k => {
+        selectedFiltersByCategory[k].clear();
+        if (Array.isArray(obj[k])) {
+            obj[k].forEach(v => selectedFiltersByCategory[k].add(v));
+        }
+    });
+}
+
+function saveLibraryState() {
+    try {
+        const state = {
+            page: currentArtistPage,
+            scrollY: window.scrollY || 0,
+            searchQuery: searchQuery || '',
+            filters: getSelectedFiltersObject()
+        };
+        sessionStorage.setItem('libraryState', JSON.stringify(state));
+    } catch (e) {
+        console.error('saveLibraryState failed', e);
+    }
+}
+
+function restoreLibraryState() {
+    try {
+        const raw = sessionStorage.getItem('libraryState');
+        if (!raw) return;
+        const state = JSON.parse(raw);
+        if (!state) return;
+
+        // restore search query
+        if (state.searchQuery) {
+            searchQuery = state.searchQuery;
+            const input = document.getElementById('compactSearchInput');
+            if (input) input.value = searchQuery;
+        }
+
+        // restore filters
+        if (state.filters) {
+            setSelectedFiltersFromObject(state.filters);
+            renderCategoryButtons();
+        }
+
+        // apply filters & search to render
+        updateUI();
+
+        // restore page
+        if (state.page && Number(state.page) > 1) {
+            currentArtistPage = Number(state.page);
+            renderArtistCards(lastFilteredArtists, currentArtistPage);
+        }
+
+        // restore scroll after a short delay to ensure layout
+        if (typeof state.scrollY === 'number') {
+            setTimeout(() => { window.scrollTo(0, state.scrollY); }, 50);
+        }
+    } catch (e) {
+        console.error('restoreLibraryState failed', e);
+    }
 }
 
 // Replace failing images with a placeholder div
@@ -75,7 +158,11 @@ function handleProfileClick(e) {
     if (!card) return;
     const nameEl = card.querySelector('.artist-name');
     const name = nameEl ? nameEl.innerText : 'Unknown';
-    window.location.href = `artist-detail.html?name=${encodeURIComponent(name)}`;
+    const id = (card.getAttribute('data-id') || '').trim();
+    saveLibraryState();
+    const params = new URLSearchParams({ name });
+    if (id) params.set('id', id);
+    window.location.href = `artist-detail.html?${params.toString()}`;
 }
 
 function setupArtistCardInteractions() {
@@ -139,32 +226,78 @@ function renderArtistPagination(totalItems, currentPage, totalPages) {
 }
 
 function loadData() {
-    fetch('./assets/data.json')
-        .then(res => res.json())
-        .then(data => {
-            artists = data.map(item => ({
-                name: normalizeText(item['Auteur(s)'] || item['Tous les auteur(s) des liées']),
-                nationality: normalizeText(item['Nationalité']),
-                place: normalizeText(item['Vit / travaille'] || item['Lieu de réalisation'] || item['Naissance / décès']),
-                date: normalizeText(item['Date de création'] || item['Naissance / décès'] || item['Naissance / décès']),
-                medium: normalizeText(item['Domaine, dénomination'] || item['Domaine']),
-                image: normalizeText(item['image']),
-                source: item
-            }));
+    Promise.all([
+        fetch('./assets/artists.json').then(res => res.json()),
+        fetch('./assets/Artworks.json').then(res => res.json())
+    ])
+        .then(([artistsJson, records]) => {
+            const artistMap = new Map();
 
-            // Deduplicate artists by normalized name (keep first occurrence)
-            const seen = new Set();
-            artists = artists.filter(a => {
-                const key = (a.name || '').toLowerCase().trim();
-                if (seen.has(key)) return false;
-                seen.add(key);
-                return true;
+            artistsJson.forEach(item => {
+                const name = normalizeText(item['Artist']);
+                if (!name || name === 'Unknown') return;
+                const key = name.toLowerCase();
+                if (!artistMap.has(key)) {
+                    artistMap.set(key, {
+                        name,
+                        id: '',
+                        nationality: normalizeText(item['Nationality']),
+                        place: normalizeText(item['Lives / Works']),
+                        date: normalizeText(item['Birth / death']),
+                        biography: normalizeText(item['Biography']),
+                        video: normalizeText(item['Video']),
+                        image: normalizeText(item['Image']),
+                        medium: [],
+                        collection: [],
+                        genre: [],
+                        _mediumSet: new Set(),
+                        _collectionSet: new Set(),
+                        _genreSet: new Set()
+                    });
+                }
             });
+
+            records.forEach(record => {
+                const name = normalizeText(record['Author(s)'] || record['All the authors of the links'] || record['Auteur(s)'] || record['Tous les auteur(s) des liées']);
+                const recordId = normalizeText(record['ID'] || record['Id'] || record['id']);
+                if (!name || name === 'Unknown') return;
+                const key = name.toLowerCase();
+                let artist = artistMap.get(key);
+                // Only process artworks for artists that already exist in artists.json
+                if (!artist) return;
+
+                if ((!artist.id || artist.id === 'Unknown') && recordId && recordId !== 'Unknown') {
+                    artist.id = recordId;
+                }
+
+                if (!artist.nationality || artist.nationality === 'Unknown') {
+                    artist.nationality = normalizeText(record['Nationality']);
+                }
+                if ((!artist.place || artist.place === 'Unknown') && (record['Lives / Works'] || record['Place of production'])) {
+                    artist.place = normalizeText(record['Lives / Works'] || record['Place of production']);
+                }
+                if ((!artist.date || artist.date === 'Unknown') && (record['Birth / death'] || record['Date of creation'])) {
+                    artist.date = normalizeText(record['Birth / death'] || record['Date of creation']);
+                }
+
+                addValues(artist._mediumSet, record['Domain, name']);
+                addValues(artist._collectionSet, record['Collection']);
+                addValues(artist._genreSet, record['Movement keywords']);
+            });
+
+            artists = Array.from(artistMap.values()).map(artist => ({
+                ...artist,
+                medium: Array.from(artist._mediumSet),
+                collection: Array.from(artist._collectionSet),
+                genre: Array.from(artist._genreSet)
+            }));
 
             renderCategoryButtons();
             lastFilteredArtists = artists;
             renderArtistCards(artists, currentArtistPage);
             updateFooter(artists.length, []);
+            // restore previous UI state (page, scroll, filters) if available
+            restoreLibraryState();
         })
         .catch(error => {
             console.error('Unable to load artist data:', error);
@@ -177,28 +310,35 @@ function getUniqueValues(category) {
     const values = new Set();
 
     artists.forEach(artist => {
-        const raw = normalizeText(artist.source[field]);
-        if (raw && raw !== 'Unknown') {
-            values.add(raw);
+        const raw = artist[field];
+        if (Array.isArray(raw)) {
+            raw.forEach(item => {
+                const normalized = normalizeText(item);
+                if (normalized && normalized !== 'Unknown') values.add(normalized);
+            });
+        } else {
+            const normalized = normalizeText(raw);
+            if (normalized && normalized !== 'Unknown') values.add(normalized);
         }
     });
 
     return Array.from(values).sort((a, b) => a.localeCompare(b));
 }
 
-// --- Search suggestion helpers ---
 function getAllKeywords() {
     const set = new Set();
     artists.forEach(a => {
         if (a.name && a.name !== 'Unknown') set.add(a.name);
         if (a.nationality && a.nationality !== 'Unknown') set.add(a.nationality);
         if (a.place && a.place !== 'Unknown') set.add(a.place);
-        if (a.medium && a.medium !== 'Unknown') {
-            a.medium.toString().split(',').forEach(m => { if (m && m.trim()) set.add(m.trim()); });
-        }
+        if (a.medium && a.medium.length) a.medium.forEach(m => set.add(m));
+        if (a.genre && a.genre.length) a.genre.forEach(g => set.add(g));
+        if (a.collection && a.collection.length) a.collection.forEach(c => set.add(c));
     });
     return Array.from(set);
 }
+
+// --- Search suggestion helpers ---
 
 function updateSearchSuggestions(query) {
     const container = document.getElementById('searchSuggestions');
@@ -408,8 +548,11 @@ function applyFilters() {
         if (activeSet && activeSet.size) {
             activeSelections.push(...Array.from(activeSet));
             filtered = filtered.filter(artist => {
-                const raw = normalizeText(artist.source[field]);
-                return activeSet.has(raw);
+                const raw = artist[field];
+                if (Array.isArray(raw)) {
+                    return raw.some(item => activeSet.has(normalizeText(item)));
+                }
+                return activeSet.has(normalizeText(raw));
             });
         }
     });
@@ -441,7 +584,7 @@ function renderArtistCards(data, page = 1) {
                 : `<div class="no-image-placeholder">No Image</div>`;
 
             return `
-                <article class="artist-card" data-name="${artist.name}">
+                <article class="artist-card" data-name="${artist.name}" data-id="${artist.id || ''}">
                     <div class="card-image-area">
                         ${imageHtml}
                     </div>
@@ -529,8 +672,11 @@ function updateUI() {
         const field = categoryFieldMap[category];
         if (activeSet && activeSet.size) {
             filtered = filtered.filter(artist => {
-                const raw = normalizeText(artist.source[field]);
-                return activeSet.has(raw);
+                const raw = artist[field];
+                if (Array.isArray(raw)) {
+                    return raw.some(item => activeSet.has(normalizeText(item)));
+                }
+                return activeSet.has(normalizeText(raw));
             });
         }
     });
