@@ -143,6 +143,24 @@ function initGlobe() {
                 Globe.hexPolygonsData(globeFeatures);
             }
 
+            function spotlightCountries(countryNames = []) {
+                const normalizedTargets = new Set(countryNames.map(normalizeCountryName));
+                Globe.hexPolygonColor(feature => {
+                    const props = feature?.properties || {};
+                    const candidateNames = [
+                        props.ADMIN,
+                        props.NAME,
+                        props.NAME_LONG,
+                        props.SOVEREIGNT,
+                        props.GEOUNIT,
+                        props.SUBUNIT
+                    ];
+                    const isTarget = candidateNames.some(name => normalizedTargets.has(normalizeCountryName(name)));
+                    return isTarget ? "#edf8d1" : "#2d2d44";
+                });
+                Globe.hexPolygonsData(globeFeatures);
+            }
+
             // SECTION ENTRANCES
             const sidebarSections = [2, 3, 4, 6, 7, 8, 9, 10];
             sidebarSections.forEach(sectionNumber => {
@@ -246,7 +264,7 @@ function initGlobe() {
             
             // Move Earth to right side for section 2
             section2TL.to(Globe.position, {
-                x: 100,
+                x: 150,
                 duration: 1,
                 ease: "power2.inOut"
             });
@@ -294,7 +312,7 @@ function initGlobe() {
             });
             
             sections4to7TL.to(Globe.position, {
-                x: 100,
+                x: 150,
                 duration: 2,
                 ease: "power1.inOut"
             });
@@ -305,8 +323,8 @@ function initGlobe() {
             const marinaArcs = [{
                 startLat: 44.82,
                 startLng: 20.46,
-                endLat: 40.71,
-                endLng: -74.01
+                endLat: 52.3676,
+                endLng: 4.9041
             }];
 
             const mariaArcs = [{
@@ -351,12 +369,15 @@ function initGlobe() {
                 start: "top 65%",
                 onEnter: () => {
                     globeSpinning = false;
-                    faceGlobe(45, -27);
+                    // Center on Belgrade during Abramovic section.
+                    faceGlobe(44.82, 20.46);
+                    spotlightCountries(["Serbia", "Republic of Serbia", "Netherlands"]);
                     Globe.arcsData(marinaArcs);
                 },
                 onLeaveBack: () => {
                     globeSpinning = true;
                     Globe.arcsData([]);
+                    resetDefaultHexColor();
                     gsap.to(Globe.rotation, { x: 0, duration: 1, ease: "power2.inOut" });
                 }
             });
@@ -366,11 +387,14 @@ function initGlobe() {
                 start: "top 65%",
                 onEnter: () => {
                     globeSpinning = false;
-                    faceGlobe(-23.55, -46.63);
+                    // Keep Brazil highlighted while framing Haiti to better read trajectory.
+                    faceGlobe(18.9712, -72.2852);
+                    spotlightCountries(["Brazil", "United States of America", "United States"]);
                     Globe.arcsData(mariaArcs);
                 },
                 onLeaveBack: () => {
-                    faceGlobe(45, -27);
+                    faceGlobe(44.82, 20.46);
+                    spotlightCountries(["Serbia", "Republic of Serbia", "Netherlands"]);
                     Globe.arcsData(marinaArcs);
                 }
             });
@@ -391,8 +415,7 @@ function initGlobe() {
                 onLeaveBack: () => {
                     faceGlobe(-23.55, -46.63);
                     Globe.arcsData(mariaArcs);
-                    Globe.hexPolygonColor(() => "#9181f9");
-                    Globe.hexPolygonsData(globeFeatures);
+                    spotlightCountries(["Brazil"]);
                 }
             });
 

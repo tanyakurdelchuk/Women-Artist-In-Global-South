@@ -488,11 +488,23 @@ body::-webkit-scrollbar {
 }
 
 .panel-img {
-    width: clamp(120px, 15vw, 200px);
+    width: clamp(120px, 35vw, 290px);
+    height: auto;
+    display: block;
+    object-fit: contain;
+    border-radius: 30px;
+    margin-left: 60px;
+    flex-shrink: 0;
+}
+
+.panel-imgbis {
+    width: clamp(200px, 35vw, 450px);
     height: auto;
     display: block;
     object-fit: contain;
     border-radius: 12px;
+    margin-left: 40px;
+    margin-top: 100px;
     flex-shrink: 0;
 }
 
@@ -734,7 +746,7 @@ body::-webkit-scrollbar {
     
     /* Custom scrollbar styling */
     scrollbar-width: thin;
-    scrollbar-color: #A3A5FF transparent;
+    scrollbar-color: #a3a4ff52 transparent;
 }
 
 
@@ -1545,7 +1557,8 @@ hr {
 }
 
 .news-hero-copy p {
-    color: rgba(237, 248, 209, 0.88);
+    color: white;
+    opacity: 0.92;
     font-size: 1rem;
     line-height: 1.8;
     margin-bottom: 1.15rem;
@@ -1566,7 +1579,6 @@ hr {
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
     transition: box-shadow 0.2s ease;
 }
 
@@ -1586,42 +1598,18 @@ hr {
 .hero-video-inner {
     position: relative;
     width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem;
-}
-
-
-
-.hero-play-circle {
-    width: 90px;
-    height: 90px;
-    border-radius: 50%;
-    border: 2px solid rgba(237, 248, 209, 0.28);
-    background: rgba(255, 255, 255, 0.08);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    backdrop-filter: blur(12px);
-    z-index: 1;
-    cursor: pointer;
-    transition: transform 0.2s ease;
-}
-
-.hero-play-circle:hover {
-    transform: scale(1.05);
-}
-
-.hero-play-circle span {
-    display: block;
-    width: 0;
     height: 0;
-    border-left: 22px solid rgba(237, 248, 209, 0.95);
-    border-top: 14px solid transparent;
-    border-bottom: 14px solid transparent;
-    margin-left: 4px;
+    padding-top: 56.25%;
+}
+
+
+.hero-video-inner iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    z-index: 1;
 }
 
 .news-filters {
@@ -1692,7 +1680,6 @@ hr {
     position: relative;
     min-height: 200px;
     background: linear-gradient(180deg, rgba(163, 165, 255, 0.22), rgba(23, 24, 46, 0.95));
-    cursor: pointer;
 }
 
 .card-media::after {
@@ -1700,7 +1687,23 @@ hr {
     position: absolute;
     inset: 0;
     background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.65) 100%);
-    cursor: pointer;
+    pointer-events: none;
+}
+
+.card-media.has-video {
+    min-height: 0;
+    height: 0;
+    padding-top: 56.25%;
+    overflow: hidden;
+}
+
+.card-media.has-video iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    z-index: 0;
 }
 
 .card-tag {
@@ -1746,14 +1749,14 @@ hr {
 }
 
 .card-summary {
-    color: rgba(237, 248, 209, 0.78);
+    color: rgba(255, 255, 255, 0.78);
     line-height: 1.8;
     margin: 0;
     font-size: 0.98rem;
 }
 
 .card-date {
-    color: rgba(237, 248, 209, 0.58);
+    color: rgba(255, 255, 255, 0.58);
     font-size: 0.85rem;
     letter-spacing: 0.02em;
     margin-top: auto;
@@ -2010,7 +2013,7 @@ hr {
     background: #A3A5FF;
     color: #182341;
     text-decoration: none;
-    border-radius: 50px;
+    border-radius: 5px;
     font-weight: 600;
     font-size: 1rem;
     transition: all 0.3s ease;
@@ -2123,6 +2126,8 @@ hr {
 .underline-svg { display:block; width:100%; height:1px; }
 .nationality-badge { background-color:#edf8b1; transition:background-color .2s, color .2s; height:23px; border-radius:2.933px; width:fit-content; padding:4.24px 4.47px; display:inline-flex; align-items:center; justify-content:center; }
 .artist-card:hover .nationality-badge { background-color:#1f1f1f; }
+.tag-hex-icon { width:11px; height:11px; fill:transparent; stroke:#111; stroke-width:1.8; stroke-linejoin:round; flex-shrink:0; margin-right:4px; transition:stroke .2s ease; }
+.artist-card:hover .tag-hex-icon { stroke:#ffffff; }
 .nationality-text { font-family:'Funnel Display', sans-serif; font-weight:600; line-height:13.692px; font-size:9.89px; letter-spacing:0.4px; text-transform:uppercase; color:#111; white-space:nowrap; transition:color .2s; }
 .artist-card:hover .nationality-text { color:white; }
 .info-row { display:flex; align-items:center; gap:8px; }

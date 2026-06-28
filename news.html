@@ -43,10 +43,14 @@
             </div>
             <div class="hero-video-card">
                 <div class="hero-video-inner">
-                    <div class="hero-video-thumb"></div>
-                    <button class="hero-play-circle" aria-label="Play featured video">
-                        <span></span>
-                    </button>
+                    <iframe
+                        src="https://www.youtube-nocookie.com/embed/lYT_ClPwgm4?rel=0"
+                        title="Featured interview"
+                        loading="lazy"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        referrerpolicy="strict-origin-when-cross-origin"
+                        allowfullscreen>
+                    </iframe>
                 </div>
             </div>
         </section>
@@ -62,21 +66,37 @@
 
         <section class="news-grid">
             <article class="news-card">
-                <div class="card-media">
+                <div class="card-media has-video">
+                    <iframe
+                        src="https://www.youtube-nocookie.com/embed/AESrxsI8VK8?rel=0"
+                        title="Interview video 1"
+                        loading="lazy"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        referrerpolicy="strict-origin-when-cross-origin"
+                        allowfullscreen>
+                    </iframe>
                     <div class="card-tag">Interview</div>
-                    <div class="card-duration">1:12:05</div>
+                    <div class="card-duration">5:42</div>
                 </div>
                 <div class="card-content">
-                    <h3>Interview with Maria Thereza Alves</h3>
+                    <h3>Interview with Magali Armillas Tiseyra</h3>
                     <p class="card-summary">A long-form conversation tracing the artist’s research, archive practice and the systems shaping her work.</p>
                     <p class="card-date">Oct 05, 20XX</p>
                 </div>
             </article>
 
             <article class="news-card">
-                <div class="card-media">
+                <div class="card-media has-video">
+                    <iframe
+                        src="https://www.youtube-nocookie.com/embed/9UJKJ8TUfQ4?rel=0"
+                        title="Interview video 2"
+                        loading="lazy"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        referrerpolicy="strict-origin-when-cross-origin"
+                        allowfullscreen>
+                    </iframe>
                     <div class="card-tag">Interview</div>
-                    <div class="card-duration">41:10</div>
+                    <div class="card-duration">12:10</div>
                 </div>
                 <div class="card-content">
                     <h3>Interview with Elodie Brun on the term Global South</h3>
@@ -98,23 +118,6 @@
             </article>
         </section>
     </main>
-
-    <!-- Video Modal -->
-    <div id="videoModal" class="video-modal">
-        <div class="modal-content">
-            <button class="modal-close" aria-label="Close">&times;</button>
-            <div class="modal-video-container">
-                <video id="modalVideo" controls>
-                    <source src="" type="video/mp4">
-                    Your browser does not support the video tag.
-                </video>
-            </div>
-            <div class="modal-info">
-                <h2 id="modalTitle"></h2>
-                <p id="modalDescription"></p>
-            </div>
-        </div>
-    </div>
 
     <footer class="footer">
         <div class="footer-inner">
@@ -187,57 +190,6 @@
                 document.querySelectorAll('.news-filter').forEach(item => item.classList.remove('active'));
                 button.classList.add('active');
             });
-        });
-
-        // Video Modal Functionality
-        const modal = document.getElementById('videoModal');
-        const modalVideo = document.getElementById('modalVideo');
-        const modalTitle = document.getElementById('modalTitle');
-        const modalDescription = document.getElementById('modalDescription');
-        const closeBtn = document.querySelector('.modal-close');
-        const heroVideoCard = document.querySelector('.hero-video-card');
-        const newsCards = document.querySelectorAll('.news-card');
-
-        function openModal(videoSrc, title, description) {
-            modalVideo.src = videoSrc || '';
-            modalTitle.textContent = title;
-            modalDescription.textContent = description;
-            modal.classList.add('active');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeModal() {
-            modal.classList.remove('active');
-            modalVideo.pause();
-            modalVideo.src = '';
-            document.body.style.overflow = 'auto';
-        }
-
-        closeBtn.addEventListener('click', closeModal);
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) closeModal();
-        });
-
-        // Hero video click
-        heroVideoCard.addEventListener('click', () => {
-            openModal('', 'Featured Interview', 'Featured video will be placed here');
-        });
-
-        // News card clicks (only for videos, not articles)
-        newsCards.forEach(card => {
-            const tagElement = card.querySelector('.card-tag');
-            const isArticle = tagElement && tagElement.textContent.toLowerCase() === 'article';
-            
-            if (!isArticle) {
-                card.addEventListener('click', () => {
-                    const title = card.querySelector('h3').textContent;
-                    const description = card.querySelector('.card-summary').textContent;
-                    const duration = card.querySelector('.card-duration').textContent;
-                    openModal('', title, description + ' - ' + duration);
-                });
-            } else {
-                card.style.cursor = 'default';
-            }
         });
     </script>
 

@@ -594,7 +594,12 @@ function renderArtistCards(data, page = 1) {
                           </div>
                         </div>
                         <div style="display:flex;flex-direction:column;gap:11.276px;">
-                          <div class="nationality-badge"><p class="nationality-text">${artist.nationality}</p></div>
+                                                    <div class="nationality-badge">
+                                                        <svg class="tag-hex-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                                            <polygon points="12,2 22,8 22,16 12,22 2,16 2,8" />
+                                                        </svg>
+                                                        <p class="nationality-text">${artist.nationality}</p>
+                                                    </div>
                           <div class="info-row"><p class="info-text">${artist.date}</p><div class="dot-sep"></div><p class="info-text">${artist.place}</p></div>
                           <p class="artist-name">${artist.name}</p>
                         </div>

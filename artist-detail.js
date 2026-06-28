@@ -12,6 +12,8 @@
   const imgPlaceholder = document.getElementById('imgPlaceholder');
   const bioBlock = document.querySelector('.bio-block');
   const readMoreBtn = document.getElementById('readMoreBtn');
+  const interviewSection = document.getElementById('artistInterviewSection');
+  const interviewFrame = document.getElementById('artistInterviewFrame');
   const artworksSection = document.getElementById('artworksSection');
   const artworksGrid = document.getElementById('artworksGrid');
   const artworkModal = document.getElementById('artworkModal');
@@ -99,6 +101,58 @@
   function textOrEmpty(value) {
     const text = (value || '').toString().trim();
     return text && text !== 'Unknown' ? text : '';
+  }
+
+  function getEmbedVideoUrl(rawUrl) {
+    const value = (rawUrl || '').toString().trim();
+    if (!value) return '';
+
+    try {
+      const url = new URL(value);
+      const host = url.hostname.toLowerCase();
+
+      if (host.includes('youtu.be')) {
+        const id = url.pathname.replace('/', '').trim();
+        return id ? `https://www.youtube-nocookie.com/embed/${id}?rel=0` : '';
+      }
+
+      if (host.includes('youtube.com') || host.includes('youtube-nocookie.com')) {
+        if (url.pathname.startsWith('/embed/')) {
+          return value;
+        }
+
+        const id = url.searchParams.get('v');
+        return id ? `https://www.youtube-nocookie.com/embed/${id}?rel=0` : '';
+      }
+
+      if (host.includes('vimeo.com')) {
+        const id = url.pathname.split('/').filter(Boolean)[0];
+        return id ? `https://player.vimeo.com/video/${id}` : '';
+      }
+    } catch (error) {
+      return '';
+    }
+
+    return '';
+  }
+
+  function renderInterviewSection(artistData, artistDisplayName) {
+    if (!interviewSection || !interviewFrame) return;
+
+    const normalizedName = normalizeName(artistDisplayName);
+    const isMarilena = normalizedName.includes('marilena pelosi');
+
+    if (!isMarilena) {
+      interviewSection.hidden = true;
+      interviewFrame.src = '';
+      return;
+    }
+
+    const videoValue = textOrEmpty(artistData?.['Video']) || 'https://youtu.be/lYT_ClPwgm4';
+    const embedUrl = getEmbedVideoUrl(videoValue) || 'https://www.youtube-nocookie.com/embed/lYT_ClPwgm4?rel=0';
+
+    interviewFrame.src = embedUrl;
+    interviewSection.hidden = false;
   }
 
   function closeArtworkModal() {
@@ -278,6 +332,7 @@
 
         if (!artistData) {
           artistNameEl.textContent = 'Artist not found';
+          renderInterviewSection(null, '');
           renderArtworks([]);
           return;
         }
@@ -308,6 +363,7 @@
           .map(paragraph => `<p>${paragraph.trim()}</p>`)
           .join('');
         updateBioToggleVisibility();
+        renderInterviewSection(artistData, name);
 
         // Update image
         if (image && image !== 'Unknown') {
@@ -337,6 +393,7 @@
         console.error('Error loading artist data:', error);
         artistNameEl.textContent = 'Error loading artist data';
         updateBioToggleVisibility();
+        renderInterviewSection(null, '');
         renderArtworks([]);
       });
   }

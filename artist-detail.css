@@ -136,6 +136,43 @@ body {
   color: var(--accent-lime);
 }
 
+/* INTERVIEW SECTION */
+.artist-interview {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 0 45px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.artist-interview__title {
+  font-family: 'Funnel Display', sans-serif;
+  font-size: clamp(1.9rem, 2.8vw, 3rem);
+  font-weight: 700;
+  color: var(--accent-purple);
+  line-height: 1.1;
+}
+
+.artist-interview__media {
+  position: relative;
+  width: min(100%, 1450px);
+  margin: 0 auto;
+  margin-top: 12px;
+  padding-top: 54%;
+  border: 1px solid rgba(163, 165, 255, 0.2);
+  background: #0f1226;
+  overflow: hidden;
+}
+
+.artist-interview__media iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
 /*ARTWORKS GRID*/
 .artworks-section {
   max-width: 1600px;
@@ -462,6 +499,12 @@ body {
     padding: 12px 24px 42px;
   }
 
+  .artist-interview {
+    padding: 0 24px 28px;
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
   .artworks-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 14px;
@@ -493,6 +536,10 @@ body {
 
   .artworks-section {
     padding: 10px 16px 32px;
+  }
+
+  .artist-interview {
+    padding: 0 16px 20px;
   }
 
   .artworks-grid {
