@@ -1,1 +1,0 @@
-# Women-Artist-In-Global-South
