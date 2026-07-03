@@ -88,7 +88,7 @@
             <article class="news-card">
                 <div class="card-media has-video">
                     <iframe
-                        src="https://youtu.be/yXHbFRnK2I0?si=qXiHv9UeIkOXewjJ"
+                        src="https://youtu.be/yXHbFRnK2I0?si=V4B6vxBmA622TACy"
                         title="Interview video 2"
                         loading="lazy"
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -190,6 +190,83 @@
                 document.querySelectorAll('.news-filter').forEach(item => item.classList.remove('active'));
                 button.classList.add('active');
             });
+        });
+
+        function getEmbedUrl(rawUrl) {
+            if (!rawUrl) return '';
+
+            const url = rawUrl.trim();
+
+            if (url.includes('/embed/')) {
+                return url;
+            }
+
+            const youtubeMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^?&/]+)/i);
+            if (youtubeMatch && youtubeMatch[1]) {
+                return `https://www.youtube-nocookie.com/embed/${youtubeMatch[1]}?rel=0`;
+            }
+
+            return url;
+        }
+
+        const videoPanels = document.querySelectorAll('.hero-video-card, .news-card .card-media.has-video');
+
+        const modal = document.createElement('div');
+        modal.className = 'video-modal';
+        modal.innerHTML = `
+            <div class="modal-content" role="dialog" aria-modal="true" aria-label="Expanded video player">
+                <button class="modal-close" type="button" aria-label="Close video">&times;</button>
+                <div class="modal-video-container">
+                    <iframe
+                        title="Expanded video"
+                        loading="lazy"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        referrerpolicy="strict-origin-when-cross-origin"
+                        allowfullscreen>
+                    </iframe>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        const modalIframe = modal.querySelector('iframe');
+        const closeButton = modal.querySelector('.modal-close');
+
+        function closeModal() {
+            modal.classList.remove('active');
+            document.body.classList.remove('modal-open');
+            modalIframe.src = '';
+        }
+
+        function openModalFromPanel(panel) {
+            const sourceIframe = panel.querySelector('iframe');
+            if (!sourceIframe) return;
+
+            const embedUrl = getEmbedUrl(sourceIframe.getAttribute('src'));
+            if (!embedUrl) return;
+
+            modalIframe.src = embedUrl;
+            modal.classList.add('active');
+            document.body.classList.add('modal-open');
+        }
+
+        videoPanels.forEach(panel => {
+            panel.addEventListener('click', () => openModalFromPanel(panel));
+        });
+
+        modal.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                closeModal();
+            }
+        });
+
+        closeButton.addEventListener('click', closeModal);
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && modal.classList.contains('active')) {
+                closeModal();
+            }
         });
     </script>
 

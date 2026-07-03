@@ -146,6 +146,10 @@ body {
   gap: 18px;
 }
 
+.artist-interview[hidden] {
+  display: none !important;
+}
+
 .artist-interview__title {
   font-family: 'Funnel Display', sans-serif;
   font-size: clamp(1.9rem, 2.8vw, 3rem);
@@ -378,7 +382,8 @@ body {
 }
 
 .modal-acquisition,
-.modal-collection {
+.modal-collection,
+.modal-copyright {
   font-size: 1rem;
   line-height: 1.6;
   color: rgba(232, 234, 248, 0.9);
@@ -389,6 +394,12 @@ body {
 
 .modal-collection {
   margin-top: 0;
+}
+
+.modal-acquisition:empty,
+.modal-collection:empty,
+.modal-copyright:empty {
+  display: none;
 }
 
 /* ---- Right column: single masked image ---- */

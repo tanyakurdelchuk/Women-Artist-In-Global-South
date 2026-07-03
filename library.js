@@ -527,6 +527,8 @@ function attachPopoverActionHandlers(category) {
 
 function closeFilterPopover() {
     filterControls.classList.add('hidden');
+    const backdrop = document.getElementById('filterBackdrop');
+    if (backdrop) backdrop.classList.remove('visible');
 }
 
 function openFilterPopover(category) {

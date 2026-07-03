@@ -30,6 +30,7 @@
   const modalArtworkLines = document.getElementById('modalArtworkLines');
   const modalArtworkAcquisition = document.getElementById('modalArtworkAcquisition');
   const modalArtworkCollection = document.getElementById('modalArtworkCollection');
+  const modalArtworkCopyright = document.getElementById('modalArtworkCopyright');
   const backToCartographyLink = document.getElementById('backToCartographyLink');
 
   let currentArtworks = [];
@@ -139,17 +140,14 @@
   function renderInterviewSection(artistData, artistDisplayName) {
     if (!interviewSection || !interviewFrame) return;
 
-    const normalizedName = normalizeName(artistDisplayName);
-    const isMarilena = normalizedName.includes('marilena pelosi');
+    const videoValue = textOrEmpty(artistData?.['Video']);
+    const embedUrl = getEmbedVideoUrl(videoValue);
 
-    if (!isMarilena) {
+    if (!embedUrl) {
       interviewSection.hidden = true;
       interviewFrame.src = '';
       return;
     }
-
-    const videoValue = textOrEmpty(artistData?.['Video']) || 'https://youtu.be/lYT_ClPwgm4';
-    const embedUrl = getEmbedVideoUrl(videoValue) || 'https://www.youtube-nocookie.com/embed/lYT_ClPwgm4?rel=0';
 
     interviewFrame.src = embedUrl;
     interviewSection.hidden = false;
@@ -198,6 +196,7 @@
     const description = textOrEmpty(artwork['Description']);
     const acquisition = textOrEmpty(artwork['Acquisition']);
     const collection = textOrEmpty(artwork['Collection']);
+    const copyrightText = textOrEmpty(artwork['Copyright']);
 
     const artistName = currentArtistProfile?.name || textOrEmpty(artwork['Author(s)']) || 'Artist';
     const artistBirth = currentArtistProfile?.date || textOrEmpty(artwork['Birth / death']);
@@ -214,6 +213,7 @@
     modalArtworkLines.innerHTML = lines.map(line => `<p>${line}</p>`).join('');
     modalArtworkAcquisition.textContent = acquisition;
     modalArtworkCollection.textContent = collection;
+    modalArtworkCopyright.textContent = copyrightText ? `Copyright: ${copyrightText}` : '';
 
     updateArtworkNavigation();
   }
