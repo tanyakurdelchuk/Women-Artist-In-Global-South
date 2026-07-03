@@ -901,11 +901,14 @@ button { background:none; border:none; }
 /* ---- Artist panel (country click) ---- */
 .artist-panel {
     position: fixed;
-    top: 50%;
+    top: 92px;
     left: 1.5rem;
-    transform: translateY(-50%);
-    width: 300px;
-    max-height: 70vh;
+    width: min(460px, calc(100vw - 3rem));
+    height: min(72vh, 680px);
+    min-width: 220px;
+    min-height: 200px;
+    max-width: calc(100vw - 55rem);
+    max-height: calc(100vh - 160px);
     background: rgba(20, 20, 36, 0.96);
     backdrop-filter: blur(16px);
     border: 1px solid rgba(163, 165, 255, 0.18);
@@ -915,26 +918,41 @@ button { background:none; border:none; }
     display: none;
     flex-direction: column;
     overflow: hidden;
+    resize: both;
+    border-radius: 3px;
+    padding-bottom: 15px;
 }
 
 .artist-panel.open {
     display: flex;
 }
 
+.artist-panel.is-dragging {
+    box-shadow: 0 20px 56px rgba(0, 0, 0, 0.62);
+}
+
 .artist-panel-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 10px;
     padding: 14px 16px 10px;
     flex-shrink: 0;
+    cursor: move;
+    user-select: none;
+}
+
+.artist-panel-header button {
+    cursor: pointer;
 }
 
 .artist-panel-title {
     font-family: 'Funnel Display', sans-serif;
-    font-size: 1.3rem;
+    font-size: 1.45rem;
     font-weight: 700;
     color: #edf8b1;
     line-height: 1.2;
+    flex: 1;
 }
 
 .artist-panel-close {
@@ -955,7 +973,7 @@ button { background:none; border:none; }
 
 .artist-panel-subtitle {
     padding: 0 16px 10px;
-    font-size: 11px;
+    font-size: 12px;
     color: rgba(255, 255, 255, 0.4);
     letter-spacing: 0.3px;
     flex-shrink: 0;
@@ -965,10 +983,10 @@ button { background:none; border:none; }
 .artist-panel-grid {
     overflow-y: auto;
     flex: 1;
-    padding: 12px;
+    padding: 14px 20px 22px 14px;
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
+    grid-template-columns: repeat(auto-fill, minmax(115px, 1fr));
+    gap: 12px;
     scrollbar-width: thin;
     scrollbar-color: #a3a5ff transparent;
 }
@@ -987,11 +1005,10 @@ button { background:none; border:none; }
 
 .artist-panel-img-wrap {
     width: 100%;
-    height: 90px;
+    height: 118px;
     flex-shrink: 0;
     overflow: hidden;
     background: #1a1a2e;
-    border-radius: 4px;
 }
 
 .artist-panel-img {
@@ -1015,7 +1032,7 @@ button { background:none; border:none; }
 }
 
 .artist-panel-name {
-    font-size: 9.5px;
+    font-size: 10.5px;
     color: rgba(255, 255, 255, 0.65);
     text-align: center;
     line-height: 1.3;
@@ -1024,7 +1041,7 @@ button { background:none; border:none; }
 }
 
 .artist-panel-lives {
-    font-size: 8.5px;
+    font-size: 9px;
     color: rgba(255, 255, 255, 0.38);
     text-align: center;
     line-height: 1.3;
@@ -1073,6 +1090,8 @@ button { background:none; border:none; }
     flex-direction: column;
     flex: 1;
     overflow-y: auto;
+    padding-right: 10px;
+    padding-bottom: 18px;
     scrollbar-width: thin;
     scrollbar-color: #a3a5ff transparent;
 }
@@ -1082,8 +1101,8 @@ button { background:none; border:none; }
 }
 
 .artist-panel-profile-photo {
-    width: 100%;
-    height: 200px;
+    width: 300px;
+    height: 260px;
     object-fit: cover;
     object-position: center top;
     display: block;
@@ -1093,7 +1112,7 @@ button { background:none; border:none; }
 
 .artist-panel-profile-no-photo {
     width: 100%;
-    height: 200px;
+    height: 260px;
     background: #1a1a2e;
     display: flex;
     align-items: center;
@@ -1106,10 +1125,10 @@ button { background:none; border:none; }
 }
 
 .artist-panel-profile-body {
-    padding: 14px 16px 18px;
+    padding: 16px 18px 20px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
 }
 
 .artist-panel-profile-name {
@@ -1179,6 +1198,20 @@ button { background:none; border:none; }
 .artist-panel-profile-btn:hover {
     background: rgba(163, 165, 255, 0.22);
     border-color: rgba(163, 165, 255, 0.6);
+}
+
+@media (max-width: 900px) {
+    .artist-panel {
+        left: 0.75rem;
+        top: 82px;
+        width: calc(100vw - 1.5rem);
+        max-width: calc(100vw - 1.5rem);
+        min-width: 0;
+        min-height: 320px;
+        height: min(72vh, 640px);
+        max-height: calc(100vh - 92px);
+        resize: vertical;
+    }
 }
 
 /* ---- Globe info card ---- */
@@ -1279,24 +1312,37 @@ button { background:none; border:none; }
     margin: 12px 0 10px;
 }
 
-.info-card-filters-section {
+.info-card-legend-section {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
 }
 
-.info-card-filters-label {
-    font-size: 11px;
-    color: rgba(240, 240, 240, 0.35);
-    font-style: italic;
-    line-height: 1.5;
-    word-break: break-word;
+.info-card-legend-title {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    color: rgba(163, 165, 255, 0.8);
+    font-weight: 600;
 }
 
-.info-card-filters-label.info-card-filters-active {
-    color: #a3a5ff;
-    font-style: normal;
-    font-weight: 500;
+.info-card-legend-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.info-card-legend-swatch {
+    width: 12px;
+    height: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    flex-shrink: 0;
+}
+
+.info-card-legend-text {
+    font-size: 10.5px;
+    color: rgba(240, 240, 240, 0.72);
+    line-height: 1.3;
 }
 
 /* ---- Artistic Journey toggle (inside artist profile) ---- */

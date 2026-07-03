@@ -5,11 +5,8 @@
 const palette = {
     0: '#FFFFD9',      // No artists
     1: '#B9E3A0',      // 1 artist
-    2: '#7BCC9A',      // 2-3 artists
-    4: '#89D1C1',      // 4-5 artists
-    6: '#41b6c4',      // 6-10 artists
-    11: '#1d91c0',     // 11-20 artists
-    21: '#225ea8',     // 21-23 artists
+    4: '#89D1C1',      // 4-9 artists
+    10: '#41b6c4',      // 10-24 artists
     24: '#253494'      // 24+ artists
 };
 

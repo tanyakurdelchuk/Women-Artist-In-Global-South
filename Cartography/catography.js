@@ -173,6 +173,13 @@ fetch(assetUrl('./ne_110m_admin_0_countries.geojson')).then(res => res.json()).t
     
     // Define a color palette (at least 4 colors for map coloring)
     const palette = ['#FFFFD9', '#B9E3A0','#7BCC9A', '#A7DDD1', '#41b6c4', '#1d91c0', '#225ea8', '#253494'];
+    const paletteLegendBuckets = [
+        { color: '#FFFFD9', label: 'No artists' },
+        { color: '#B9E3A0', label: '1 to 3 artists' },
+        { color: '#89D1C1', label: '4 to 9 artists' },
+        { color: '#41b6c4', label: '10 to 24 artists' },
+        { color: '#253494', label: '24+ artists' }
+    ];
 
     // Check each feature for normal opacity
     features.forEach((feature, i) => {
@@ -338,6 +345,12 @@ fetch(assetUrl('./ne_110m_admin_0_countries.geojson')).then(res => res.json()).t
     // Info panel
     const info = document.createElement('div');
     info.className = 'info-card';
+    const paletteLegendHtml = paletteLegendBuckets.map(bucket => `
+        <div class="info-card-legend-row">
+            <span class="info-card-legend-swatch" style="background:${bucket.color}"></span>
+            <span class="info-card-legend-text">${bucket.label}</span>
+        </div>
+    `).join('');
     info.innerHTML = `
         <div class="info-card-header">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -355,8 +368,9 @@ fetch(assetUrl('./ne_110m_admin_0_countries.geojson')).then(res => res.json()).t
             </label>
         </div>
         <div class="info-card-divider"></div>
-        <div class="info-card-filters-section">
-            <span class="info-card-filters-label">No filters selected</span>
+        <div class="info-card-legend-section">
+            <span class="info-card-legend-title">Map Legend</span>
+            ${paletteLegendHtml}
         </div>
     `;
     document.body.appendChild(info);
@@ -397,11 +411,89 @@ fetch(assetUrl('./ne_110m_admin_0_countries.geojson')).then(res => res.json()).t
     `;
     document.body.appendChild(artistPanel);
 
+    function clampArtistPanelToViewport() {
+        const rect = artistPanel.getBoundingClientRect();
+        const minLeft = 12;
+        const minTop = 82;
+        const maxLeft = Math.max(minLeft, window.innerWidth - rect.width - 12);
+        const maxTop = Math.max(minTop, window.innerHeight - rect.height - 12);
+
+        const currentLeft = Number.parseFloat(artistPanel.style.left);
+        const currentTop = Number.parseFloat(artistPanel.style.top);
+        const fallbackLeft = Number.isFinite(currentLeft) ? currentLeft : rect.left;
+        const fallbackTop = Number.isFinite(currentTop) ? currentTop : rect.top;
+
+        artistPanel.style.left = `${Math.min(maxLeft, Math.max(minLeft, fallbackLeft))}px`;
+        artistPanel.style.top = `${Math.min(maxTop, Math.max(minTop, fallbackTop))}px`;
+    }
+
+    function enableArtistPanelDragging() {
+        const header = artistPanel.querySelector('.artist-panel-header');
+        if (!header) return;
+
+        let drag = null;
+
+        header.addEventListener('pointerdown', (event) => {
+            if (event.button !== 0) return;
+            if (event.target.closest('button, a, input, label')) return;
+
+            const rect = artistPanel.getBoundingClientRect();
+            artistPanel.style.left = `${rect.left}px`;
+            artistPanel.style.top = `${rect.top}px`;
+
+            drag = {
+                pointerId: event.pointerId,
+                offsetX: event.clientX - rect.left,
+                offsetY: event.clientY - rect.top
+            };
+
+            header.setPointerCapture(event.pointerId);
+            artistPanel.classList.add('is-dragging');
+            event.preventDefault();
+        });
+
+        header.addEventListener('pointermove', (event) => {
+            if (!drag || event.pointerId !== drag.pointerId) return;
+
+            const rect = artistPanel.getBoundingClientRect();
+            const minLeft = 12;
+            const minTop = 82;
+            const maxLeft = Math.max(minLeft, window.innerWidth - rect.width - 12);
+            const maxTop = Math.max(minTop, window.innerHeight - rect.height - 12);
+
+            const nextLeft = Math.min(maxLeft, Math.max(minLeft, event.clientX - drag.offsetX));
+            const nextTop = Math.min(maxTop, Math.max(minTop, event.clientY - drag.offsetY));
+
+            artistPanel.style.left = `${nextLeft}px`;
+            artistPanel.style.top = `${nextTop}px`;
+        });
+
+        const finishDrag = (event) => {
+            if (!drag || event.pointerId !== drag.pointerId) return;
+
+            try {
+                header.releasePointerCapture(event.pointerId);
+            } catch {
+                // ignore if capture was already released
+            }
+
+            drag = null;
+            artistPanel.classList.remove('is-dragging');
+        };
+
+        header.addEventListener('pointerup', finishDrag);
+        header.addEventListener('pointercancel', finishDrag);
+    }
+
+    enableArtistPanelDragging();
+    window.addEventListener('resize', clampArtistPanelToViewport);
+
     let currentCountryDisplayName = '';
     let currentArtistName = '';
     let currentInfoCountryName = null;
     let artistArcMap = new Map();
     let pendingRestoreState = null;
+    let suppressPanelOpenUntil = 0;
 
     try {
         const rawState = sessionStorage.getItem(CARTOGRAPHY_STATE_KEY);
@@ -465,12 +557,19 @@ fetch(assetUrl('./ne_110m_admin_0_countries.geojson')).then(res => res.json()).t
     const countryJourneyCheckbox = document.getElementById('countryJourneyCheckbox');
     if (countryJourneyCheckbox) {
         countryJourneyCheckbox.addEventListener('change', () => {
+            if (countryJourneyCheckbox.checked) {
+                const journeyCheckbox = document.getElementById('journeyCheckbox');
+                if (journeyCheckbox) journeyCheckbox.checked = false;
+            }
             refreshJourneyArcs();
             saveCartographyState();
         });
     }
 
-    artistPanel.querySelector('.artist-panel-close').addEventListener('click', () => {
+    artistPanel.querySelector('.artist-panel-close').addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        suppressPanelOpenUntil = Date.now() + 300;
         artistPanel.classList.remove('open', 'profile-open');
         saveCartographyState();
     });
@@ -645,6 +744,7 @@ fetch(assetUrl('./ne_110m_admin_0_countries.geojson')).then(res => res.json()).t
             });
         }
         artistPanel.classList.add('open');
+        clampArtistPanelToViewport();
         saveCartographyState();
     }
 
@@ -902,6 +1002,10 @@ fetch(assetUrl('./ne_110m_admin_0_countries.geojson')).then(res => res.json()).t
         const journeyCheckbox = document.getElementById('journeyCheckbox');
         if (journeyCheckbox) {
             journeyCheckbox.addEventListener('change', () => {
+                if (journeyCheckbox.checked) {
+                    const allJourneysCheckbox = document.getElementById('countryJourneyCheckbox');
+                    if (allJourneysCheckbox) allJourneysCheckbox.checked = false;
+                }
                 refreshJourneyArcs();
                 saveCartographyState();
             });
@@ -939,6 +1043,9 @@ fetch(assetUrl('./ne_110m_admin_0_countries.geojson')).then(res => res.json()).t
             if (restoreAllJourneys) restoreAllJourneys.checked = !!pendingRestoreState.allJourneys;
             const restoreJourney = document.getElementById('journeyCheckbox');
             if (restoreJourney) restoreJourney.checked = !!pendingRestoreState.artistJourney;
+            if (restoreAllJourneys && restoreJourney && restoreAllJourneys.checked && restoreJourney.checked) {
+                restoreAllJourneys.checked = false;
+            }
             refreshJourneyArcs();
 
             pendingRestoreState = null;
@@ -1118,6 +1225,20 @@ fetch(assetUrl('./ne_110m_admin_0_countries.geojson')).then(res => res.json()).t
     const mouse = new THREE.Vector2();
     let hoveredHexIndex = null;
 
+    function findFeatureIndexFromIntersects(intersects) {
+        for (const intersect of intersects) {
+            let obj = intersect.object;
+            while (obj) {
+                if (obj.__data) {
+                    const idx = features.indexOf(obj.__data);
+                    if (idx !== -1) return idx;
+                }
+                obj = obj.parent;
+            }
+        }
+        return null;
+    }
+
     function findCountryNameFromFeatureProps(props) {
         // try common name fields from natural earth dataset with proper priority
         return props && (props.ADMIN || props.SOVEREIGNT || props.name || props.NAME || props.BRK_NAME);
@@ -1131,14 +1252,7 @@ fetch(assetUrl('./ne_110m_admin_0_countries.geojson')).then(res => res.json()).t
         const intersects = raycaster.intersectObject(Globe, true);
         
         if (intersects.length > 0) {
-            // Find the feature index from the intersected object's userData or by traversing
-            let hexIndex = null;
-            for (const intersect of intersects) {
-                if (intersect.object.__data) {
-                    hexIndex = features.indexOf(intersect.object.__data);
-                    if (hexIndex !== -1) break;
-                }
-            }
+            const hexIndex = findFeatureIndexFromIntersects(intersects);
             
             if (hexIndex !== null && hexIndex !== -1 && hexIndex !== hoveredHexIndex) {
                 // Get country name from feature
@@ -1176,6 +1290,9 @@ fetch(assetUrl('./ne_110m_admin_0_countries.geojson')).then(res => res.json()).t
 
     // Click to open artist panel
     function onMouseClick(event) {
+        // Avoid immediate click-through reopen right after closing the panel.
+        if (Date.now() < suppressPanelOpenUntil) return;
+
         // If the artist panel is open and the click is within its bounds, ignore
         if (artistPanel.classList.contains('open')) {
             const rect = artistPanel.getBoundingClientRect();
@@ -1188,18 +1305,16 @@ fetch(assetUrl('./ne_110m_admin_0_countries.geojson')).then(res => res.json()).t
         mouse.y = -((event.clientY - CANVAS_TOP) / (window.innerHeight - CANVAS_TOP)) * 2 + 1;
         raycaster.setFromCamera(mouse, camera);
         const intersects = raycaster.intersectObject(Globe, true);
-        if (intersects.length > 0) {
-            let hexIndex = null;
-            for (const intersect of intersects) {
-                if (intersect.object.__data) {
-                    hexIndex = features.indexOf(intersect.object.__data);
-                    if (hexIndex !== -1) break;
-                }
-            }
-            if (hexIndex !== null && hexIndex !== -1 && features[hexIndex].properties._isNormalOpacity) {
-                const countryName = findCountryNameFromFeatureProps(features[hexIndex].properties);
-                if (countryName) openArtistPanel(countryName);
-            }
+        let hexIndex = intersects.length > 0 ? findFeatureIndexFromIntersects(intersects) : null;
+
+        // Fallback to currently hovered country if click raycast misses.
+        if ((hexIndex === null || hexIndex === -1) && hoveredHexIndex !== null && hoveredHexIndex !== -1) {
+            hexIndex = hoveredHexIndex;
+        }
+
+        if (hexIndex !== null && hexIndex !== -1 && features[hexIndex].properties._isNormalOpacity) {
+            const countryName = findCountryNameFromFeatureProps(features[hexIndex].properties);
+            if (countryName) openArtistPanel(countryName);
         }
     }
     renderer.domElement.addEventListener('click', onMouseClick);
